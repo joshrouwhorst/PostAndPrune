@@ -1,3 +1,4 @@
+import { Account } from './accounts'
 import type { Schedule } from './scheduler'
 
 export interface AppData {
@@ -20,6 +21,7 @@ export interface Settings {
   defaultTimezone?: string
   autoBackupFrequencyMinutes?: number
   hasOnboarded: boolean
+  accounts: Account[]
 }
 
 export interface PostMedia {

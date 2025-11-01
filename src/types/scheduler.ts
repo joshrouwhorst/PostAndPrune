@@ -1,5 +1,6 @@
 // Scheduling System Types
 
+import type { Account } from './accounts'
 import type { DraftPost } from './drafts'
 
 export interface Schedule {
@@ -14,7 +15,7 @@ export interface Schedule {
   createdAt?: string
   lastTriggered?: string | null
   nextTrigger?: string | null
-  platforms: SocialPlatform[]
+  accounts: Account[]
   group: string
 }
 
@@ -29,14 +30,12 @@ export interface ScheduleFrequency {
   timeZone?: string // "America/New_York", "UTC", etc.
 }
 
-export type SocialPlatform = 'bluesky' | 'mastodon' | 'threads' | 'linkedin'
-
 // API Types
 
 export interface CreateScheduleRequest {
   name: string
   frequency: ScheduleFrequency
-  platforms: SocialPlatform[]
+  accountIds: string[]
   isActive?: boolean
   group: string
   startTime?: string
