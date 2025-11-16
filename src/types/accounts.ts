@@ -1,4 +1,4 @@
-export type SocialPlatform = 'bluesky' | 'mastodon' // Extendable to more platforms
+export type SocialPlatform = 'bluesky' // Extendable to more platforms
 
 export interface Account {
   id: string

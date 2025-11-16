@@ -232,6 +232,7 @@ src/
 
 ## Future Enhancements
 
+- [ ] Multiple accounts
 - [ ] Reposting deleted posts
   - [ ] Repost to previous datetime
   - [ ] Repost as new post. Duplicate?
@@ -240,5 +241,4 @@ src/
 - [ ] Export options
 - [ ] Statistics dashboard
 - [ ] Automated backup scheduling
-- [ ] Multiple accounts
 - [ ] Mastodon support

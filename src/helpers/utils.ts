@@ -186,8 +186,8 @@ export function getDisplayDataFromPostData(
 
 export function getDisplayDataFromDraft(
   draftPost: DraftPost,
-  displayName: string,
-  handle: string
+  displayName: string | null,
+  handle: string | null
 ): PostDisplayData {
   return {
     text: draftPost.meta.text || '',

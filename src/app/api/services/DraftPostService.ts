@@ -1,11 +1,11 @@
-import { addPost as addPostToBsky } from '@/app/api-helpers/bluesky'
+import { addPost as addPostToBsky } from '@/app/api-helpers/auth/BlueskyAuth'
 import {
   DEFAULT_GROUP,
   DEFAULT_POST_SLUG,
   DRAFT_MEDIA_ENDPOINT,
   getPaths,
-  SUPPORTED_SOCIAL_PLATFORMS,
 } from '@/config/main'
+import type { Account } from '@/types/accounts'
 import type {
   CreateDraftInput,
   DraftMedia,
@@ -13,7 +13,7 @@ import type {
   DraftMeta,
   DraftPost,
 } from '@/types/drafts'
-import type { Schedule, SocialPlatform } from '@/types/scheduler'
+import type { Schedule } from '@/types/scheduler'
 import { Jimp } from 'jimp'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -29,6 +29,7 @@ import {
   readText,
   writeFile,
 } from './FileService'
+import { getAccounts } from './SettingsService'
 
 const META_FILENAME = 'meta.json'
 const TEXT_FILENAME = 'post.txt'
@@ -483,35 +484,50 @@ export async function readMediaFile(
   return fs.readFile(p)
 }
 
-export async function publishDraftPost(
-  id: string,
-  platforms?: string[]
-): Promise<void> {
+export async function publishDraftPost({
+  id,
+  accounts,
+  accountIds,
+}: {
+  id: string
+  accounts?: Account[]
+  accountIds?: string[]
+}): Promise<void> {
+  if (!accounts && !accountIds)
+    throw new Error('Either accounts or accountIds must be provided')
+
   const post = await getDraftPost(id)
   if (!post) throw new Error('Post not found')
-  if (!platforms || platforms.length === 0) {
-    platforms = [...SUPPORTED_SOCIAL_PLATFORMS]
+
+  if (accountIds && accountIds.length > 0) {
+    const allAccounts = await getAccounts()
+    accounts = allAccounts.filter((acc) => accountIds.includes(acc.id))
+  } else {
+    accounts = accounts || []
   }
 
-  for (const platform of platforms) {
-    await sendToSocialPlatform(post, platform as SocialPlatform)
+  if (!accounts || accounts.length === 0) {
+    throw new Error('No valid accounts found for publishing')
+  }
+
+  for (const account of accounts) {
+    await sendToAccount(post, account)
   }
 }
 
-async function sendToSocialPlatform(
-  post: DraftPost,
-  platform: SocialPlatform
-): Promise<void> {
+async function sendToAccount(post: DraftPost, account: Account): Promise<void> {
   // Implement actual social media posting logic here
   // This would integrate with platform-specific APIs
-  switch (platform) {
+  switch (account.platform) {
     case 'bluesky':
       // Integrate with Bluesky API
-      await addPostToBsky(post)
+      await addPostToBsky(post, account)
       await movePostToPublished(post)
       break
     default:
-      throw new Error(`Platform ${platform} not supported`)
+      throw new Error(
+        `Account ${account.name} is using unsupported platform ${account.platform}.`
+      )
   }
 }
 

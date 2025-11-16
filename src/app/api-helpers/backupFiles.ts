@@ -1,12 +1,12 @@
-import path from 'path'
-import type { FeedViewPost } from '@/types/bsky'
-import { saveBlobToFile } from './bluesky'
-import { saveJsonToFile, readJsonFromFile, downloadFile } from './utils'
 import { getPaths } from '@/config/main'
-import Logger from './logger'
-import { checkIfExists } from '../api/services/FileService'
+import type { FeedViewPost } from '@/types/bsky'
 import type { AppBskyEmbedImages, AppBskyEmbedVideo } from '@atproto/api'
+import path from 'path'
+import { checkIfExists } from '../api/services/FileService'
+import { saveBlobToFile } from './auth/BlueskyAuth'
 import { Governor } from './governor'
+import Logger from './logger'
+import { downloadFile, readJsonFromFile, saveJsonToFile } from './utils'
 
 const logger = new Logger('BackupFile')
 const governor = new Governor(500)

@@ -2,21 +2,21 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
 import {
   Button,
-  Textarea,
   Input,
   Label,
   LinkButton,
+  Textarea,
 } from '@/components/ui/forms'
-import { X, ExternalLink } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { Buffer } from 'buffer'
-import { useDrafts } from '@/hooks/useDrafts'
-import Image from 'next/image'
 import { DEFAULT_GROUP } from '@/config/frontend'
-import { CreateDraftInput, DraftMedia } from '@/types/drafts'
+import { useDrafts } from '@/hooks/useDrafts'
+import type { CreateDraftInput, DraftMedia } from '@/types/drafts'
+import { Buffer } from 'buffer'
+import { ExternalLink, X } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface CreateDraftFormProps {
   redirect?: string

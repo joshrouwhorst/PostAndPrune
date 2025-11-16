@@ -1,8 +1,10 @@
-import { Settings } from '@/types/types'
+import type { Account } from '@/types/accounts'
+import type { Settings } from '@/types/types'
 
 interface SettingsHookContext {
   fetchSettings: () => Promise<Settings>
   updateSettings: (newSettings: Partial<Settings>) => Promise<Settings>
+  validateAccount: (account: Account) => Promise<boolean>
 }
 
 export function useSettings(): SettingsHookContext {
@@ -32,8 +34,24 @@ export function useSettings(): SettingsHookContext {
     return data
   }
 
+  const validateAccount = async (account: Account): Promise<boolean> => {
+    const response = await fetch('/api/accounts/validate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(account),
+    })
+    if (!response.ok) {
+      return false
+    }
+    const data = await response.json()
+    return data.valid === true
+  }
+
   return {
     fetchSettings,
     updateSettings,
+    validateAccount,
   }
 }

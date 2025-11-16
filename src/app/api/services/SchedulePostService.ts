@@ -1,23 +1,24 @@
+import { getAppData, saveAppData } from '@/app/api-helpers/appData'
+import { DEFAULT_GROUP } from '@/config/main'
+import { wait } from '@/helpers/utils'
+import type { DraftPost } from '@/types/drafts'
 import type {
-  ScheduleFrequency,
-  Schedule,
   CreateScheduleRequest,
+  Schedule,
+  ScheduleFrequency,
   ScheduleLookups,
 } from '@/types/scheduler'
-import { getAppData, saveAppData } from '@/app/api-helpers/appData'
+import dayjs from 'dayjs'
+import timezone from 'dayjs/plugin/timezone'
+import utc from 'dayjs/plugin/utc'
+import { getNextDatetime } from '../../api-helpers/getNextDatetime'
+import Logger from '../../api-helpers/logger'
 import {
   getDraftPostsInGroup,
   getDraftPostsInSchedule,
   publishDraftPost,
 } from './DraftPostService'
-import type { DraftPost } from '@/types/drafts'
-import Logger from '../../api-helpers/logger'
-import { getNextDatetime } from '../../api-helpers/getNextDatetime'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-import timezone from 'dayjs/plugin/timezone'
-import { DEFAULT_GROUP } from '@/config/main'
-import { wait } from '@/helpers/utils'
+
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
@@ -72,13 +73,36 @@ export async function createSchedule(
 ): Promise<Schedule> {
   const schedules = await getSchedules()
 
+  // let accounts =
+  //   request.accountIds && request.accountIds.length > 0
+  //     ? await getAccounts()
+  //     : []
+
+  const _appData = await getAppData()
+  let accounts = _appData.settings?.accounts || []
+
+  accounts = accounts.filter((acc) => request.accountIds.includes(acc.id))
+
+  if (
+    request.accountIds &&
+    request.accountIds.length > 0 &&
+    accounts.length === 0
+  ) {
+    throw new Error('No valid accounts found for the provided account IDs')
+  }
+
+  logger.log(`Creating schedule with name: ${request.name}`, {
+    frequency: request.frequency,
+    accounts: accounts.map((acc) => acc.id),
+  })
+
   const schedule: Schedule = {
     id: `schedule-${Date.now()}`,
     name: request.name,
     frequency: cleanFrequency(request.frequency),
     isActive: request.isActive ?? true,
     createdAt: new Date().toISOString(),
-    platforms: request.platforms,
+    accounts,
     group: request.group || DEFAULT_GROUP,
   }
 
@@ -234,9 +258,13 @@ export async function publishNextPost(scheduleId: string): Promise<void> {
     `Next post for schedule ${schedule.name} is ${post.meta.directoryName}.`
   )
 
-  // Just send to bluesky if no platforms specified
-  if (!schedule.platforms || schedule.platforms.length === 0) {
-    schedule.platforms = ['bluesky']
+  if (!schedule.accounts || schedule.accounts.length === 0) {
+    logger.log(
+      `No accounts specified for schedule ${schedule.name}. Skipping publish.`
+    )
+    await updateScheduleData({ schedules })
+    logger.closing('Publish Next Post Process')
+    return
   }
 
   let attempts = 0
@@ -249,7 +277,10 @@ export async function publishNextPost(scheduleId: string): Promise<void> {
           schedule.name
         } (Attempt ${attempts + 1})`
       )
-      await publishDraftPost(post.meta.directoryName, schedule.platforms)
+      await publishDraftPost({
+        id: post.meta.directoryName,
+        accounts: schedule.accounts,
+      })
       successful = true
       break // Success, exit loop
     } catch (error) {

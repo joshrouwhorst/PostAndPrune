@@ -35,7 +35,7 @@ export const DEFAULT_PRUNE_MONTHS = process.env.DEFAULT_PRUNE_MONTHS || 3
 export const DEFAULT_GROUP = 'default' // in all config files
 export const DEFAULT_POST_SLUG = 'draft'
 
-export const MINIMUM_MINUTES_BETWEEN_BACKUPS = 0 // TODO: Reset to 5 when testing is done
+export const MINIMUM_MINUTES_BETWEEN_BACKUPS = 5
 
 export const DRAFT_MEDIA_ENDPOINT = '/api/drafts/media'
 export const BACKUP_MEDIA_ENDPOINT = '/api/backup/images'

@@ -1,14 +1,14 @@
-import { NextResponse } from 'next/server'
-import type { DraftPost } from '@/types/drafts'
+import { withBskyLogoutWithId } from '@/app/api-helpers/apiWrapper'
+import Logger from '@/app/api-helpers/logger'
 import {
   deleteDraftPost,
-  getDraftPost,
-  updateDraftPost,
   duplicateDraftPost,
+  getDraftPost,
   publishDraftPost,
+  updateDraftPost,
 } from '@/app/api/services/DraftPostService'
-import Logger from '@/app/api-helpers/logger'
-import { withBskyLogoutWithId } from '@/app/api-helpers/apiWrapper'
+import type { DraftPost } from '@/types/drafts'
+import { NextResponse } from 'next/server'
 
 const logger = new Logger('DraftRoute')
 
@@ -36,6 +36,8 @@ export const POST = withBskyLogoutWithId(async (id, request) => {
     const url = new URL(request.url)
     const duplicate = url.searchParams.get('duplicate')
     const publish = url.searchParams.get('publish')
+    const accountIds = url.searchParams.getAll('accountIds')
+
     if (!id) {
       logger.error('Post ID not provided for POST request')
       return NextResponse.json(
@@ -44,11 +46,19 @@ export const POST = withBskyLogoutWithId(async (id, request) => {
       )
     }
 
+    if (publish === 'true' && accountIds.length === 0) {
+      logger.error('Account IDs are required for publishing')
+      return NextResponse.json(
+        { error: 'Account IDs are required for publishing' },
+        { status: 400 }
+      )
+    }
+
     if (duplicate === 'true') {
       const duplicatedPost = await duplicateDraftPost(id)
       return NextResponse.json(duplicatedPost, { status: 201 })
     } else if (publish === 'true') {
-      await publishDraftPost(id)
+      await publishDraftPost({ id, accountIds })
       return NextResponse.json({ message: 'Post published' }, { status: 201 })
     } else {
       logger.error('Invalid action for POST request')

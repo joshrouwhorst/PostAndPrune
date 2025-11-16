@@ -12,9 +12,6 @@ export interface AppData {
 }
 
 export interface Settings {
-  bskyIdentifier?: string
-  bskyPassword?: string
-  bskyDisplayName?: string
   backupLocation?: string
   autoPruneFrequencyMinutes?: number
   pruneAfterMonths?: number

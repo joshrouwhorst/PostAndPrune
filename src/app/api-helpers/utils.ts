@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 
 export async function saveJsonToFile(
-  data: any,
+  data: string | object,
   filePath: string
 ): Promise<void> {
   // Ensure the directory exists

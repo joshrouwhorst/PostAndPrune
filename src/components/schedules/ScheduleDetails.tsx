@@ -69,6 +69,21 @@ export default function ScheduleDetails({
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Group: {schedule.group ?? 'NONE'}
               </p>
+              {schedule.accounts && schedule.accounts.length > 0 ? (
+                <p>
+                  Accounts
+                  <ul>
+                    {schedule.accounts.map((acc) => (
+                      <li
+                        key={acc.id}
+                        className="text-gray-900 dark:text-gray-100"
+                      >
+                        {acc.name} ({acc.platform})
+                      </li>
+                    ))}
+                  </ul>
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-row gap-4">
               <div>

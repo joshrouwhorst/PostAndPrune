@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { logout as bskyLogout } from './bluesky'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { logout as bskyLogout } from './auth/BlueskyAuth'
 import Logger from './logger'
 
 const logger = new Logger('ApiWrapper')

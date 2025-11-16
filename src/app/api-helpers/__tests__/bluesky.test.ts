@@ -1,7 +1,24 @@
+import type { Account } from '@/types/accounts'
+import type { DraftPost } from '@/types/drafts'
+import type { Settings } from '@/types/types'
 import { AtpAgent } from '@atproto/api'
-import * as blueskyHelpers from '../bluesky'
 import fs from 'fs/promises'
-import { DraftPost } from '@/types/drafts'
+import * as blueskyHelpers from '../auth/BlueskyAuth'
+
+const mockAccount: Account = {
+  id: 'account1',
+  name: 'Test Account',
+  platform: 'bluesky',
+  credentials: {
+    bluesky: {
+      identifier: 'testuser',
+      password: 'testpass',
+    },
+  },
+  isActive: true,
+  isDefault: false,
+  createdAt: new Date().toISOString(),
+}
 
 jest.mock('@/app/api-helpers/appData', () => ({
   getAppData: jest.fn().mockResolvedValue({
@@ -11,13 +28,11 @@ jest.mock('@/app/api-helpers/appData', () => ({
     oldestBskyPostDate: null,
     schedules: [],
     settings: {
-      bskyIdentifier: 'testuser',
-      bskyPassword: 'testpass',
-      bskyDisplayName: 'Test User',
       backupLocation: '/mock/backup',
       pruneAfterMonths: 6,
       hasOnboarded: true,
-    },
+      accounts: [mockAccount],
+    } as Settings,
   }),
   saveAppData: jest.fn().mockResolvedValue(undefined),
 }))
@@ -130,7 +145,7 @@ describe('bluesky helpers', () => {
 
   describe('getPosts', () => {
     it('fetches posts and respects cutoffDate', async () => {
-      const posts = await blueskyHelpers.getPosts({
+      const posts = await blueskyHelpers.getPosts(mockAccount, {
         cutoffDate: new Date('2022-06-01'),
       })
       expect(posts.length).toBe(1)
@@ -138,13 +153,17 @@ describe('bluesky helpers', () => {
     })
 
     it('filters out comments if isComment=true', async () => {
-      const posts = await blueskyHelpers.getPosts({ isComment: true })
+      const posts = await blueskyHelpers.getPosts(mockAccount, {
+        isComment: true,
+      })
       expect(posts.length).toBe(1)
       expect(posts[0].reply).toBeDefined()
     })
 
     it('filters out original posts if isComment=false', async () => {
-      const posts = await blueskyHelpers.getPosts({ isComment: false })
+      const posts = await blueskyHelpers.getPosts(mockAccount, {
+        isComment: false,
+      })
       expect(posts.length).toBe(1)
       expect(posts[0].reply).toBeUndefined()
     })
@@ -152,7 +171,7 @@ describe('bluesky helpers', () => {
 
   describe('deletePosts', () => {
     it('deletes posts before cutoffDate', async () => {
-      await blueskyHelpers.deletePosts({
+      await blueskyHelpers.deletePosts(mockAccount, {
         cutoffDate: new Date('2023-01-01T01:00:00Z'),
       })
       expect(mockDeletePost).not.toHaveBeenCalledWith('uri1')
@@ -160,7 +179,7 @@ describe('bluesky helpers', () => {
     })
 
     it('throws if cutoffDate is missing', async () => {
-      await expect(blueskyHelpers.deletePosts({})).rejects.toThrow(
+      await expect(blueskyHelpers.deletePosts(mockAccount, {})).rejects.toThrow(
         'cutoffDate is required'
       )
     })
@@ -177,7 +196,7 @@ describe('bluesky helpers', () => {
         },
         group: 'group1',
       } as DraftPost
-      await blueskyHelpers.addPost(post)
+      await blueskyHelpers.addPost(post, mockAccount)
       expect(mockUploadBlob).toHaveBeenCalled()
       expect(mockCreatePost).toHaveBeenCalled()
     })
@@ -193,7 +212,7 @@ describe('bluesky helpers', () => {
         },
         group: 'group2',
       } as any
-      await blueskyHelpers.addPost(post)
+      await blueskyHelpers.addPost(post, mockAccount)
       expect(mockUploadBlob).toHaveBeenCalled()
       expect(mockCreatePost).toHaveBeenCalled()
     })

@@ -1,15 +1,16 @@
 'use client'
 
+import { useSettings } from '@/hooks/useSettings'
+import type { Account } from '@/types/accounts'
+import type { Settings } from '@/types/types'
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
   type ReactNode,
-  useCallback,
 } from 'react'
-import type { Settings } from '@/types/types'
-import { useSettings } from '@/hooks/useSettings'
 
 interface SettingsContextType {
   settings: Settings | null
@@ -17,6 +18,7 @@ interface SettingsContextType {
   update: (newSettings: Partial<Settings>) => Promise<void>
   isLoading: boolean
   error: Error | null
+  validateAccount: (account: Account) => Promise<boolean>
 }
 
 // Create the context
@@ -37,7 +39,7 @@ export default function SettingsProvider({ children }: SettingsProviderProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const { fetchSettings, updateSettings } = useSettings()
+  const { fetchSettings, updateSettings, validateAccount } = useSettings()
 
   const refresh = useCallback(async () => {
     setIsLoading(true)
@@ -91,6 +93,7 @@ export default function SettingsProvider({ children }: SettingsProviderProps) {
     update,
     isLoading,
     error,
+    validateAccount,
   }
 
   return (

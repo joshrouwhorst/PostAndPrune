@@ -1,14 +1,14 @@
-import { AtpAgent, RichText } from '@atproto/api'
-import type { FeedViewPost } from '@/types/bsky'
-import type { DraftPost } from '@/types/drafts'
-import fs from 'fs/promises'
-import { Governor } from './governor'
-import Logger from './logger'
-import { getSettings } from '../api/services/SettingsService'
 import { getPaths, PREVENT_POSTING } from '@/config/main'
 import { wait } from '@/helpers/utils'
+import type { Account } from '@/types/accounts'
+import type { FeedViewPost } from '@/types/bsky'
+import type { DraftPost } from '@/types/drafts'
+import { AtpAgent, RichText } from '@atproto/api'
 import ExifReader from 'exifreader'
+import fs from 'fs/promises'
 import path from 'path'
+import { Governor } from '../governor'
+import Logger from '../logger'
 
 const logger = new Logger('BlueskySvc')
 
@@ -23,35 +23,39 @@ let postCache: FeedViewPost[] | null = null
 let cacheDate: Date | null = null
 const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
 
-let _agent: AtpAgent | null = null
+const _agents: Map<string, AtpAgent> = new Map()
 
-async function getAgent(): Promise<AtpAgent> {
-  if (!_agent) {
+async function getAgent(account: Account): Promise<AtpAgent> {
+  if (!_agents.has(account.id)) {
     logger.log('Creating Bluesky agent.')
-    _agent = await createAgent()
+    const agent = await createAgent(account)
+    _agents.set(account.id, agent)
   }
-  return _agent
+  const agent = _agents.get(account.id)
+  if (!agent) throw new Error('Failed to get Bluesky agent')
+  return agent
 }
 
-export async function logout() {
-  if (_agent) {
+export async function logout(account: Account) {
+  const agent = await getAgent(account)
+  if (agent) {
     logger.log('Logging out from Bluesky.')
-    await _agent.logout()
-    _agent = null
+    await agent.logout()
+    _agents.delete(account.id)
   } else {
     logger.log('No agent to log out.')
   }
 }
 
-async function createAgent(): Promise<AtpAgent> {
-  const settings = await getSettings()
-  const BSKY_IDENTIFIER =
-    settings?.bskyIdentifier || process.env.BSKY_IDENTIFIER
-  const BSKY_PASSWORD = settings?.bskyPassword || process.env.BSKY_PASSWORD
+async function createAgent(account: Account): Promise<AtpAgent> {
+  const BSKY_IDENTIFIER = account.credentials.bluesky?.identifier
+  const BSKY_PASSWORD = account.credentials.bluesky?.password
 
   if (!BSKY_IDENTIFIER || !BSKY_PASSWORD) {
-    logger.error('Cannot find Bluesky credentials in settings.')
-    throw new Error('Bluesky credentials are not set in settings')
+    logger.error(
+      `Cannot find Bluesky credentials in account ${account.name}(${account.id}).`
+    )
+    throw new Error('Bluesky credentials are not set in account')
   }
 
   const agent = new AtpAgent({
@@ -91,11 +95,11 @@ async function createAgent(): Promise<AtpAgent> {
 }
 
 export async function getPosts(
+  account: Account,
   config?: PostFilters,
   useCache: boolean = false
 ): Promise<FeedViewPost[]> {
-  const agent = await getAgent()
-
+  const agent = await getAgent(account)
   // Use cached posts if within cache duration
   if (
     useCache &&
@@ -112,9 +116,7 @@ export async function getPosts(
   const postList: FeedViewPost[] = []
 
   try {
-    const settings = await getSettings()
-    const BSKY_IDENTIFIER =
-      settings?.bskyIdentifier || process.env.BSKY_IDENTIFIER
+    const BSKY_IDENTIFIER = account.credentials.bluesky?.identifier
 
     if (!BSKY_IDENTIFIER) {
       logger.error('Cannot find Bluesky identifier in settings')
@@ -166,8 +168,11 @@ export async function getPosts(
   return postList
 }
 
-export async function deletePostsWithUris(postUris: string[]): Promise<void> {
-  const agent = await getAgent()
+export async function deletePostsWithUris(
+  account: Account,
+  postUris: string[]
+): Promise<void> {
+  const agent = await getAgent(account)
   await governor.wait()
 
   try {
@@ -192,12 +197,14 @@ export async function deletePostsWithUris(postUris: string[]): Promise<void> {
   }
 }
 
-export async function deletePosts(config: PostFilters): Promise<void> {
-  const agent = await getAgent()
+export async function deletePosts(
+  account: Account,
+  config: PostFilters
+): Promise<void> {
+  const agent = await getAgent(account)
   await governor.wait()
-  const settings = await getSettings()
-  const BSKY_IDENTIFIER =
-    settings?.bskyIdentifier || process.env.BSKY_IDENTIFIER
+
+  const BSKY_IDENTIFIER = account.credentials.bluesky?.identifier
 
   if (!BSKY_IDENTIFIER) {
     logger.error('Cannot find Bluesky identifier in settings')
@@ -325,8 +332,11 @@ function removeOriginalPosts(posts: FeedViewPost[]): FeedViewPost[] {
   })
 }
 
-export async function addPost(post: DraftPost) {
-  const agent = await getAgent()
+export async function addPost(
+  post: DraftPost,
+  account: Account
+): Promise<void> {
+  const agent = await getAgent(account)
   await governor.wait()
 
   try {
@@ -462,12 +472,13 @@ function getAltFromExif(tags: ExifReader.Tags): string | null {
  * @returns Promise<boolean> - true if successful, false otherwise
  */
 export async function saveBlobToFile(
+  account: Account,
   cid: string,
   filePath: string,
   did: string
 ): Promise<boolean> {
   try {
-    const agent = await getAgent()
+    const agent = await getAgent(account)
 
     let success = false
     let response = null

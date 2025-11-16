@@ -1,3 +1,4 @@
+import type { Account } from '@/types/accounts'
 import type { CreateDraftInput, DraftPost } from '@/types/drafts'
 import type { Schedule } from '@/types/scheduler'
 import {
@@ -23,7 +24,7 @@ jest.mock('../FileService', () => ({
 }))
 
 // Mock the bluesky helper
-jest.mock('../../../api-helpers/bluesky', () => ({
+jest.mock('../../../api-helpers/auth/BlueskyAuth', () => ({
   addPost: jest.fn(),
 }))
 
@@ -77,6 +78,22 @@ describe('DraftPostService', () => {
     // Restore real timers
     jest.useRealTimers()
   })
+
+  const mockAccount: Account = {
+    name: 'Test Account',
+    id: 'account1',
+    platform: 'bluesky',
+    isActive: true,
+    isDefault: false,
+    createdAt: new Date().toISOString(),
+    credentials: {
+      bluesky: {
+        identifier: 'test-identifier',
+        password: 'test-password',
+      },
+    },
+  }
+
   const mockSchedule: Schedule = {
     id: 'test-schedule',
     name: 'Test Schedule',
@@ -89,7 +106,7 @@ describe('DraftPostService', () => {
     },
     postOrder: ['post1', 'post2', 'post3'],
     createdAt: MOCK_ISO_STRING,
-    platforms: ['bluesky'],
+    accounts: [mockAccount],
   }
 
   const mockDraftPost: DraftPost = {
@@ -464,7 +481,7 @@ describe('DraftPostService', () => {
 
   describe('publishDraftPost', () => {
     const { checkIfExists, readText, listFiles } = require('../FileService')
-    const { addPost } = require('../../../api-helpers/bluesky')
+    const { addPost } = require('../../../api-helpers/auth/BlueskyAuth')
 
     it('should publish a draft post to Bluesky', async () => {
       checkIfExists.mockResolvedValue(true)
@@ -514,7 +531,7 @@ describe('DraftPostService', () => {
       addPost.mockResolvedValue({ success: true })
 
       await expect(
-        publishDraftPost('post1', ['bluesky'])
+        publishDraftPost({ id: 'post1', accounts: [mockAccount] })
       ).resolves.not.toThrow()
       expect(addPost).toHaveBeenCalled()
     })
@@ -542,7 +559,7 @@ describe('DraftPostService', () => {
       })
 
       await expect(
-        publishDraftPost('nonexistent', ['bluesky'])
+        publishDraftPost({ id: 'nonexistent', accounts: [mockAccount] })
       ).rejects.toThrow('Post not found')
     })
 
@@ -592,8 +609,23 @@ describe('DraftPostService', () => {
       })
 
       // The function should throw for unsupported platforms with a descriptive error
-      await expect(publishDraftPost('post1', ['twitter'])).rejects.toThrow(
-        'Platform twitter not supported'
+      await expect(
+        publishDraftPost({
+          id: 'post1',
+          accounts: [
+            {
+              id: 'account1',
+              name: 'Unsupported Account',
+              platform: 'unsupported-platform',
+              credentials: {},
+              isActive: true,
+              isDefault: false,
+              createdAt: new Date().toISOString(),
+            } as unknown as Account,
+          ],
+        })
+      ).rejects.toThrow(
+        'Account Unsupported Account is using unsupported platform unsupported-platform.'
       )
     })
   })

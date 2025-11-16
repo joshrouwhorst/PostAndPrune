@@ -1,33 +1,32 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: see code */
 'use client'
 
-import React from 'react'
+import {
+  getDisplayDataFromDraft,
+  getDisplayDataFromPostData,
+} from '@/helpers/utils'
+import { useDraftContext } from '@/providers/DraftsProvider'
 import type { PostData } from '@/types/bsky'
 import type { DraftPost } from '@/types/drafts'
+import type { PostDisplayData } from '@/types/types'
 import {
+  CloudUpload,
+  Copy,
+  CopyPlus,
+  Edit,
+  Folder,
+  FolderPen,
   Heart,
   MessageCircle,
   Repeat2,
-  Copy,
   Reply,
-  Edit,
   Trash,
-  Folder,
-  CopyPlus,
-  CloudUpload,
-  FolderPen,
 } from 'lucide-react'
-import type { PostDisplayData } from '@/types/types'
-import PostMediaCarousel from './PostMediaCarousel'
-import { Button, LinkButton } from './ui/forms'
-import { useDraftContext } from '@/providers/DraftsProvider'
 import Image from 'next/image'
+import React from 'react'
+import PostMediaCarousel from './PostMediaCarousel'
 import PostVideoPlayer from './PostVideoPlayer'
-import {
-  getDisplayDataFromPostData,
-  getDisplayDataFromDraft,
-} from '@/helpers/utils'
-import { useSettingsContext } from '@/providers/SettingsProvider'
+import { Button, LinkButton } from './ui/forms'
 
 interface PostProps {
   variant?: 'full' | 'compact'
@@ -48,7 +47,6 @@ export default function Post({
 }: PostProps) {
   const { deleteDraft, duplicateDraft, refresh, publishDraft } =
     useDraftContext()
-  const { settings } = useSettingsContext()
 
   if (!variant) variant = 'full'
 
@@ -58,8 +56,8 @@ export default function Post({
   } else if (!displayData && draftPost) {
     displayData = getDisplayDataFromDraft(
       draftPost,
-      settings?.bskyDisplayName || 'Display Name',
-      settings?.bskyIdentifier || '@identifier'
+      null, // TODO: Figure out a default display name or get it from settings
+      null
     )
   }
 
@@ -226,14 +224,20 @@ export default function Post({
     return (
       <div className="p-4 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 shadow-md text-black dark:text-white">
         <div className="flex flex-row items-center justify-between mb-2">
+          {/* TODO: Figure out what to show for display name on drafts */}
           {/* Name and handle */}
           <div className="flex flex-col md:flex-row md:items-center md:gap-2">
-            <span className="font-semibold">
-              {displayData.author?.displayName || displayData.author?.handle}
-            </span>
-            <span className="text-gray-500 text-sm">
-              @{displayData.author?.handle}
-            </span>
+            {(displayData.author?.displayName ||
+              displayData.author?.handle) && (
+              <span className="font-semibold">
+                {displayData.author?.displayName || displayData.author?.handle}
+              </span>
+            )}
+            {displayData.author?.handle && (
+              <span className="text-gray-500 text-sm">
+                @{displayData.author.handle}
+              </span>
+            )}
             {displayData.parent && (
               <span className="text-blue-500 text-sm">
                 <Reply className="w-4 h-4" /> Reply
@@ -381,10 +385,13 @@ function ReplyParents({ parent, root }: ReplyParentsProps) {
     <div className="border-l-4 border-blue-500 pl-4 ml-2 mb-2">
       {root && (
         <div className="mb-2">
-          <span className="text-gray-500 text-sm">
-            Root post by{' '}
-            <span className="text-blue-500">@{root.author?.handle}</span>
-          </span>
+          {root.author?.handle && (
+            <span className="text-gray-500 text-sm">
+              Root post by{' '}
+              <span className="text-blue-500">@{root.author?.handle}</span>
+            </span>
+          )}
+
           <div className="text-gray-600 dark:text-gray-400 text-sm mt-1 italic">
             "{root?.text || ''}"
           </div>
@@ -392,10 +399,12 @@ function ReplyParents({ parent, root }: ReplyParentsProps) {
       )}
       {parent && (
         <div className="mb-2">
-          <span className="text-gray-500 text-sm">
-            Parent post by{' '}
-            <span className="text-blue-500">@{parent.author?.handle}</span>
-          </span>
+          {parent.author?.handle && (
+            <span className="text-gray-500 text-sm">
+              Parent post by{' '}
+              <span className="text-blue-500">@{parent.author?.handle}</span>
+            </span>
+          )}
           <div className="text-gray-600 dark:text-gray-400 text-sm mt-1 italic">
             "{parent.text || ''}"
           </div>
