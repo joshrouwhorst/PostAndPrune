@@ -1,4 +1,4 @@
-import { to12HourTime } from '@/helpers/utils'
+import { sortDaysOfTheWeek, to12HourTime } from '@/helpers/utils'
 import type { Schedule, ScheduleFrequency } from '@/types/scheduler'
 
 export default function ScheduleListItem({
@@ -16,6 +16,15 @@ export default function ScheduleListItem({
         </h3>
         <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
           Group: {schedule.group ?? 'NONE'}
+        </p>
+        <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+          Accounts:{' '}
+          {schedule.accounts?.length > 0
+            ? schedule.accounts
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((acc) => acc.name)
+                .join(', ')
+            : 'None'}
         </p>
         <div className="flex items-center mt-2 space-x-4">
           <FrequencyOutput frequency={schedule.frequency} />
@@ -42,7 +51,7 @@ function FrequencyOutput({ frequency }: { frequency: ScheduleFrequency }) {
   parts.push(`Every ${every === 1 ? unitSingle : `${every} ${unitPlural}`} `)
 
   if (frequency.daysOfWeek !== undefined && frequency.daysOfWeek.length > 0) {
-    parts.push(`on ${frequency.daysOfWeek.join(', ')}`)
+    parts.push(`on ${sortDaysOfTheWeek(frequency.daysOfWeek).join(', ')}`)
   }
 
   if (frequency.daysOfMonth !== undefined && frequency.daysOfMonth.length > 0) {

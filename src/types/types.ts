@@ -1,4 +1,5 @@
-import { Account } from './accounts'
+import type { Account } from './accounts'
+import { PostData } from './bsky'
 import type { Schedule } from './scheduler'
 
 export interface AppData {
@@ -19,6 +20,17 @@ export interface Settings {
   autoBackupFrequencyMinutes?: number
   hasOnboarded: boolean
   accounts: Account[]
+}
+
+export interface BackupData {
+  lastBackup: string | null
+  backups: AccountBackup[]
+}
+
+export interface AccountBackup {
+  account: Account
+  posts: PostData[]
+  backupDate: string
 }
 
 export interface PostMedia {

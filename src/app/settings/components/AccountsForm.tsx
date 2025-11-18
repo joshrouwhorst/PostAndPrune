@@ -1,5 +1,6 @@
 import { Button, Checkbox, Input, Label, Select } from '@/components/ui/forms'
 import type { Account, SocialPlatform } from '@/types/accounts'
+import { PencilIcon, PlusIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
 interface AccountsFormProps {
@@ -62,24 +63,39 @@ export default function AccountsForm({
       {accounts.length === 0 && (
         <p className="text-lg text-gray-500">No accounts added yet.</p>
       )}
-      {accounts.map((account) => (
-        <div
-          key={account.id}
-          className="flex items-center justify-between p-4 border rounded-md"
-        >
-          <div>
-            <p className="font-semibold">{account.name}</p>
-            <p className="text-sm text-gray-500">{account.platform}</p>
-          </div>
-          <div className="space-x-2">
-            <Button onClick={() => showEditAccountForm(account.id)}>
-              Edit
-            </Button>
-            <Button onClick={() => onDeleteAccount(account.id)}>Delete</Button>
-          </div>
+      {accounts.length > 0 && (
+        <div className="border border-gray-200 rounded-md divide-y divide-gray-200">
+          {accounts.map((account) => (
+            <div
+              key={account.id}
+              className="flex items-center justify-between p-4"
+            >
+              <div>
+                <p className="font-semibold">{account.name}</p>
+                <p className="text-sm text-gray-500">{account.platform}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => showEditAccountForm(account.id)}
+                  variant="icon"
+                >
+                  <PencilIcon />
+                </Button>
+                <Button
+                  onClick={() => onDeleteAccount(account.id)}
+                  color="danger"
+                  variant="icon"
+                >
+                  <XIcon />
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-      <Button onClick={showAddAccountForm}>Add Account</Button>
+      )}
+      <Button onClick={showAddAccountForm} color="primary" variant="outline">
+        <PlusIcon /> Add Account
+      </Button>
     </div>
   )
 }
@@ -89,7 +105,6 @@ export interface AccountFormData {
   name: string
   platform: SocialPlatform
   isActive: boolean
-  isDefault: boolean
   credentials: {
     bluesky: {
       identifier: string
@@ -104,11 +119,10 @@ export function getAccountFromAccountFormData(
   existingAccount?: Account
 ): Account {
   const account: Account = {
-    id: existingAccount ? existingAccount.id : 'new',
+    id: existingAccount ? existingAccount.id : `new-${crypto.randomUUID()}`, // Temporary ID for new accounts, will be replaced when saved
     name: data.name,
     platform: data.platform,
     isActive: data.isActive,
-    isDefault: data.isDefault,
     credentials: {},
     createdAt: existingAccount
       ? existingAccount.createdAt
@@ -145,7 +159,6 @@ function AddEditAccountForm({
     name: account?.name || '',
     platform: account?.platform || 'bluesky',
     isActive: account?.isActive ?? true,
-    isDefault: account?.isDefault ?? false,
     credentials: {
       bluesky: {
         identifier: account?.credentials.bluesky?.identifier || '',
@@ -228,17 +241,6 @@ function AddEditAccountForm({
               />
               <Label htmlFor="isActive" className="ml-2 text-sm mb-0">
                 Active
-              </Label>
-            </div>
-
-            <div className="flex items-center">
-              <Checkbox
-                id="isDefault"
-                checked={formData.isDefault}
-                onChange={(e) => updateField('isDefault', e.target.checked)}
-              />
-              <Label htmlFor="isDefault" className="ml-2 text-sm mb-0">
-                Default account
               </Label>
             </div>
           </div>

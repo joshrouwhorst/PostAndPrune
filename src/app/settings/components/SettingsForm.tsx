@@ -4,8 +4,9 @@ import Toast, { type ToastProps } from '@/components/Toast'
 import { Button, Checkbox, Input, Label } from '@/components/ui/forms'
 import { useSettingsContext } from '@/providers/SettingsProvider'
 import type { Settings } from '@/types/types'
+import { useRouter } from 'next/navigation'
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AccountsForm, {
   type AccountFormData,
   getAccountFromAccountFormData,
@@ -14,14 +15,43 @@ import AccountsForm, {
 export default function SettingsForm() {
   const { settings, update, isLoading, error, validateAccount } =
     useSettingsContext()
+  const router = useRouter()
   const [formState, setFormState] = useState<Partial<Settings>>({})
+  const [originalSettings, setOriginalSettings] = useState<Partial<Settings>>(
+    {}
+  )
   const [toastMessage, setToastMessage] = useState<ToastProps | null>(null)
 
   useEffect(() => {
     if (settings) {
       setFormState(settings)
+      setOriginalSettings(settings)
     }
   }, [settings])
+
+  // Check if form has unsaved changes
+  const hasUnsavedChanges = useCallback(() => {
+    return JSON.stringify(formState) !== JSON.stringify(originalSettings)
+  }, [formState, originalSettings])
+
+  // Warn user about unsaved changes when leaving the page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault()
+
+        // For older browser compatibility (though this is deprecated)
+        // Modern browsers will show their own generic message
+        return 'You have unsaved changes. Are you sure you want to leave?'
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [hasUnsavedChanges])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -35,11 +65,37 @@ export default function SettingsForm() {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
     await update(formState)
+    setOriginalSettings(formState) // Update original settings after successful save
     setToastMessage({
       message: 'Settings updated successfully',
       type: 'success',
     })
     setTimeout(() => setToastMessage(null), 3000)
+  }
+
+  const handleCancel = () => {
+    // Check for unsaved changes
+    if (hasUnsavedChanges()) {
+      const confirmDiscard = window.confirm(
+        'You have unsaved changes. Are you sure you want to discard them?'
+      )
+
+      if (!confirmDiscard) {
+        return // User chose to stay and keep editing
+      }
+    }
+
+    // Reset form to original state
+    if (originalSettings) {
+      setFormState(originalSettings)
+    }
+
+    // Navigate back if there's history, otherwise go home
+    if (window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/')
+    }
   }
 
   const handleAddAccount = async (
@@ -122,14 +178,13 @@ export default function SettingsForm() {
       className="space-y-6 bg-color-gray-200 dark:bg-gray-900 p-6 rounded-lg"
     >
       <div className="flex flex-row gap-4 items-stretch justify-between">
-        <div className="w-1/2 rounded p-4 border">
-          <div className="">
-            <AccountsForm
-              accounts={formState.accounts || []}
-              onSaveAccount={handleAddAccount}
-              onDeleteAccount={handleDeleteAccount}
-            />
-          </div>
+        <div className="w-1/2">
+          <h3 className="text-2xl mb-4 font-bold">Accounts</h3>
+          <AccountsForm
+            accounts={formState.accounts || []}
+            onSaveAccount={handleAddAccount}
+            onDeleteAccount={handleDeleteAccount}
+          />
         </div>
         <div className="w-1/2">
           <div className="grid grid-cols-1 gap-4">
@@ -251,10 +306,36 @@ export default function SettingsForm() {
         </div>
       </div>
 
-      {toastMessage && <Toast {...toastMessage} />}
-      <Button type="submit" disabled={isLoading}>
-        Save
-      </Button>
+      {toastMessage && (
+        <div className="absolute bottom-[50px] left-1/2 transform -translate-x-1/2 px-4 sm:px-6 z-[9999]">
+          <Toast {...toastMessage} />
+        </div>
+      )}
+
+      {/* Unsaved changes indicator */}
+      {hasUnsavedChanges() && (
+        <div className=" border-yellow-400 text-yellow-700">
+          ⚠️ You have unsaved changes
+        </div>
+      )}
+
+      <div className="flex gap-4">
+        <Button
+          type="submit"
+          disabled={isLoading || !hasUnsavedChanges()}
+          color="success"
+        >
+          {isLoading ? 'Saving...' : 'Save Changes'}
+        </Button>
+        <Button
+          type="button"
+          disabled={isLoading}
+          color="danger"
+          onClick={handleCancel}
+        >
+          {hasUnsavedChanges() ? 'Discard Changes' : 'Cancel'}
+        </Button>
+      </div>
     </form>
   )
 }

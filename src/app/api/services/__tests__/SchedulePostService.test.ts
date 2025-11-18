@@ -1,5 +1,5 @@
 import * as appDataHelpers from '@/app/api-helpers/appData'
-import { Account } from '@/types/accounts'
+import type { Account } from '@/types/accounts'
 import type {
   CreateScheduleRequest,
   Schedule,
@@ -110,7 +110,6 @@ describe('Schedule CRUD', () => {
     name: 'Bluesky Account',
     platform: 'bluesky',
     isActive: true,
-    isDefault: false,
     createdAt: new Date().toISOString(),
     credentials: {
       bluesky: {
@@ -207,7 +206,6 @@ describe('publishNextPost', () => {
       name: 'Bluesky Account',
       platform: 'bluesky',
       isActive: true,
-      isDefault: false,
       createdAt: new Date().toISOString(),
       credentials: {
         bluesky: {
@@ -252,7 +250,6 @@ describe('publishNextPost', () => {
       name: 'Bluesky Account',
       platform: 'bluesky',
       isActive: true,
-      isDefault: false,
       createdAt: new Date().toISOString(),
       credentials: {
         bluesky: {

@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: see code */
+
 import type { Account } from '@/types/accounts'
 import type { DraftPost } from '@/types/drafts'
 import type { Settings } from '@/types/types'
@@ -16,7 +18,6 @@ const mockAccount: Account = {
     },
   },
   isActive: true,
-  isDefault: false,
   createdAt: new Date().toISOString(),
 }
 
@@ -145,7 +146,7 @@ describe('bluesky helpers', () => {
 
   describe('getPosts', () => {
     it('fetches posts and respects cutoffDate', async () => {
-      const posts = await blueskyHelpers.getPosts(mockAccount, {
+      const posts = await blueskyHelpers.getPostsAsFeedViewPosts(mockAccount, {
         cutoffDate: new Date('2022-06-01'),
       })
       expect(posts.length).toBe(1)
@@ -153,7 +154,7 @@ describe('bluesky helpers', () => {
     })
 
     it('filters out comments if isComment=true', async () => {
-      const posts = await blueskyHelpers.getPosts(mockAccount, {
+      const posts = await blueskyHelpers.getPostsAsFeedViewPosts(mockAccount, {
         isComment: true,
       })
       expect(posts.length).toBe(1)
@@ -161,7 +162,7 @@ describe('bluesky helpers', () => {
     })
 
     it('filters out original posts if isComment=false', async () => {
-      const posts = await blueskyHelpers.getPosts(mockAccount, {
+      const posts = await blueskyHelpers.getPostsAsFeedViewPosts(mockAccount, {
         isComment: false,
       })
       expect(posts.length).toBe(1)

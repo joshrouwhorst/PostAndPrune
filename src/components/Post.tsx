@@ -6,6 +6,7 @@ import {
   getDisplayDataFromPostData,
 } from '@/helpers/utils'
 import { useDraftContext } from '@/providers/DraftsProvider'
+import { useModal } from '@/providers/ModalProvider'
 import type { PostData } from '@/types/bsky'
 import type { DraftPost } from '@/types/drafts'
 import type { PostDisplayData } from '@/types/types'
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import React from 'react'
+import AccountSelector from './AccountSelector'
 import PostMediaCarousel from './PostMediaCarousel'
 import PostVideoPlayer from './PostVideoPlayer'
 import { Button, LinkButton } from './ui/forms'
@@ -47,6 +49,7 @@ export default function Post({
 }: PostProps) {
   const { deleteDraft, duplicateDraft, refresh, publishDraft } =
     useDraftContext()
+  const { openModal, closeModal } = useModal()
 
   if (!variant) variant = 'full'
 
@@ -122,6 +125,71 @@ export default function Post({
     } catch (err) {
       console.error('Failed to copy to clipboard:', err)
     }
+  }
+
+  const handlePublishDraft = async (post: PostDisplayData) => {
+    if (!post.draftId) return
+
+    let modalId: string
+
+    const PublishModal = () => {
+      const [selectedAccountIds, setSelectedAccountIds] = React.useState<
+        string[]
+      >([])
+
+      return (
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-300">
+            Choose which accounts you want to publish this draft to:
+          </p>
+
+          <AccountSelector
+            selectedAccountIds={selectedAccountIds}
+            onChange={setSelectedAccountIds}
+          />
+
+          <div className="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              onClick={() => closeModal(modalId)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={async () => {
+                if (selectedAccountIds.length === 0) {
+                  alert('Please select at least one account to publish to.')
+                  return
+                }
+
+                try {
+                  if (post.draftId) {
+                    await publishDraft(post.draftId, selectedAccountIds)
+                    closeModal(modalId)
+                    await refresh()
+                  }
+                } catch (error) {
+                  console.error('Failed to publish draft:', error)
+                  alert('Failed to publish draft. Please try again.')
+                }
+              }}
+              disabled={selectedAccountIds.length === 0}
+            >
+              Publish to {selectedAccountIds.length} account
+              {selectedAccountIds.length !== 1 ? 's' : ''}
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    modalId = openModal({
+      title: 'Select Accounts to Publish To',
+      children: <PublishModal />,
+    })
   }
 
   const handleDeleteDraft = async (post: PostDisplayData) => {
@@ -256,15 +324,7 @@ export default function Post({
               <Button
                 variant="icon"
                 color="tertiary"
-                onClick={async () => {
-                  if (
-                    displayData.draftId &&
-                    confirm('Are you sure you want to publish this draft?')
-                  ) {
-                    await publishDraft(displayData.draftId)
-                    await refresh()
-                  }
-                }}
+                onClick={() => handlePublishDraft(displayData)}
                 title="Publish post"
               >
                 <CloudUpload className="w-4 h-4" />

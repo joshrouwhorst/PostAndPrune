@@ -1,4 +1,7 @@
-import { deletePosts, getPosts } from '@/app/api-helpers/auth/BlueskyAuth'
+import {
+  deletePosts,
+  getPostsAsFeedViewPosts,
+} from '@/app/api-helpers/auth/BlueskyAuth'
 import {
   backupMediaFiles,
   openBackup,
@@ -10,6 +13,7 @@ import type { PostDisplayData } from '@/components/Post'
 import { MINIMUM_MINUTES_BETWEEN_BACKUPS } from '@/config/main'
 import { formatDate, getDisplayDataFromPostData } from '@/helpers/utils'
 import type { FeedViewPost, PostData } from '@/types/bsky'
+import { BackupData } from '@/types/types'
 import { getAppData, saveAppData } from '../../api-helpers/appData'
 import { getCache, setCache } from './CacheService'
 import { getSettings } from './SettingsService'
@@ -23,7 +27,9 @@ function init() {
   logger.log('BackupService initialized.')
 }
 
-export async function getBackup(): Promise<PostData[]> {
+export async function getBackup(
+  accountIds: string[] = []
+): Promise<BackupData> {
   if (_cache) return _cache
   logger.log('Loading backup from disk.')
   setCache(CACHE_ID, null)
@@ -39,12 +45,22 @@ export async function getBackupAsPostDisplayData(): Promise<PostDisplayData[]> {
   return posts.map((post) => getDisplayDataFromPostData(post))
 }
 
-export async function runBackup() {
+export async function runBackup(
+  accountIds: string[] = []
+): Promise<PostData[]> {
   logger.opening('Backup Process')
   const appData = await getAppData()
   const lastBackup = appData?.lastBackup ? new Date(appData.lastBackup) : null
   const minimumNextBackup =
     Date.now() - MINIMUM_MINUTES_BETWEEN_BACKUPS * 60 * 1000
+
+  // Filter accounts based on provided accountIds, or use all accounts if none provided
+  const accounts =
+    accountIds.length > 0
+      ? appData.settings?.accounts.filter((account) =>
+          accountIds.includes(account.id)
+        ) || []
+      : appData.settings?.accounts || []
 
   // Make sure we respect minimum time between backups
   if (
@@ -69,72 +85,77 @@ export async function runBackup() {
   setCache(CACHE_ID, null)
   _cache = null
 
-  // Load existing backup posts
-
-  const backupPosts = await openBackup()
-
-  logger.log(`There are ${backupPosts.length} existing posts in backup.`)
-
-  let newPosts: FeedViewPost[] = []
-  try {
-    // Get all posts from Bluesky
-    newPosts = await getPosts()
-  } catch (error) {
-    logger.error('Error getting posts from Bluesky:', error)
-  }
-
-  if (newPosts.length === 0) {
-    logger.log('We received no posts from Bluesky.')
-    logger.closing('Backup Process')
-    return
-  }
-
-  logger.log(`There are ${newPosts.length} posts from Bluesky.`)
-
-  // Update existing posts with new ones, avoiding duplicates
-  const existingPostsMap = new Map(
-    backupPosts.map((post) => [post.post.cid, post])
-  )
-
-  let newMediaCount = 0
-  newPosts.forEach(async (post) => {
-    try {
-      newMediaCount += await backupMediaFiles(post)
-    } catch (error) {
-      logger.error(
-        `Error backing up media files for post: ${post.post.cid}`,
-        error
-      )
+  for (const account of accounts) {
+    logger.log(`Starting backup for account: ${account.name} (${account.id})`)
+    // Load existing backup posts
+    if (account.platform === 'bluesky') {
     }
-  })
 
-  logger.log(`There are ${newMediaCount} new media files backed up.`)
+    const backupPosts = await openBackup()
 
-  // Add new posts, replacing existing ones with same CID
-  newPosts.forEach((newPost) => {
-    existingPostsMap.set(newPost.post.cid, newPost)
-  })
+    logger.log(`There are ${backupPosts.length} existing posts in backup.`)
 
-  const combinedPosts = Array.from(existingPostsMap.values())
-  try {
-    await saveBackup(combinedPosts)
-  } catch (error) {
-    logger.error('Error saving backup:', error)
-    throw new Error('Failed to save backup')
-  }
+    let newPosts: FeedViewPost[] = []
+    try {
+      // Get all posts from Bluesky for the filtered accounts
+      newPosts = await getPostsAsFeedViewPosts(account)
+    } catch (error) {
+      logger.error('Error getting posts from Bluesky:', error)
+    }
 
-  appData.lastBackup = new Date().toISOString()
-  appData.postsOnBsky = newPosts.length
-  appData.totalPostsBackedUp = combinedPosts.length
+    if (newPosts.length === 0) {
+      logger.log('We received no posts from Bluesky.')
+      logger.closing('Backup Process')
+      continue
+    }
 
-  if (newPosts.length > 0) {
-    const oldestPost = newPosts.reduce((oldest, post) => {
-      const postDate = new Date(post.post.indexedAt)
-      return postDate < new Date(oldest.post.indexedAt) ? post : oldest
-    }, newPosts[0])
-    appData.oldestBskyPostDate = oldestPost.post.indexedAt
-  } else {
-    appData.oldestBskyPostDate = null
+    logger.log(`There are ${newPosts.length} posts from Bluesky.`)
+
+    // Update existing posts with new ones, avoiding duplicates
+    const existingPostsMap = new Map(
+      backupPosts.map((post) => [post.post.cid, post])
+    )
+
+    let newMediaCount = 0
+    newPosts.forEach(async (post) => {
+      try {
+        newMediaCount += await backupMediaFiles(post)
+      } catch (error) {
+        logger.error(
+          `Error backing up media files for post: ${post.post.cid}`,
+          error
+        )
+      }
+    })
+
+    logger.log(`There are ${newMediaCount} new media files backed up.`)
+
+    // Add new posts, replacing existing ones with same CID
+    newPosts.forEach((newPost) => {
+      existingPostsMap.set(newPost.post.cid, newPost)
+    })
+
+    const combinedPosts = Array.from(existingPostsMap.values())
+    try {
+      await saveBackup(combinedPosts)
+    } catch (error) {
+      logger.error('Error saving backup:', error)
+      throw new Error('Failed to save backup')
+    }
+
+    appData.lastBackup = new Date().toISOString()
+    appData.postsOnBsky = newPosts.length
+    appData.totalPostsBackedUp = combinedPosts.length
+
+    if (newPosts.length > 0) {
+      const oldestPost = newPosts.reduce((oldest, post) => {
+        const postDate = new Date(post.post.indexedAt)
+        return postDate < new Date(oldest.post.indexedAt) ? post : oldest
+      }, newPosts[0])
+      appData.oldestBskyPostDate = oldestPost.post.indexedAt
+    } else {
+      appData.oldestBskyPostDate = null
+    }
   }
 
   try {
@@ -186,7 +207,7 @@ export async function prunePosts(): Promise<void> {
   await deletePosts({ cutoffDate })
 
   logger.log(`Prune process complete.`)
-  const currentPosts = await getPosts()
+  const currentPosts = await getPostsAsFeedViewPosts()
   appData.lastPrune = new Date().toISOString()
 
   try {

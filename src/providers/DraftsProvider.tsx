@@ -1,16 +1,16 @@
 'use client'
 
+import { wait } from '@/helpers/utils'
+import { useDrafts, type DraftFilters } from '@/hooks/useDrafts'
+import type { CreateDraftInput, DraftPost } from '@/types/drafts'
 import {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
   useState,
   type ReactNode,
-  useCallback,
-  useEffect,
 } from 'react'
-import type { CreateDraftInput, DraftPost } from '@/types/drafts'
-import { useDrafts, type DraftFilters } from '@/hooks/useDrafts'
-import { wait } from '@/helpers/utils'
 
 interface DraftsContextType {
   drafts: DraftPost[]
@@ -26,7 +26,7 @@ interface DraftsContextType {
   updateDraft: (id: string, input: Partial<CreateDraftInput>) => Promise<void>
   deleteDraft: (id: string) => Promise<void>
   duplicateDraft: (id: string) => Promise<DraftPost>
-  publishDraft: (id: string) => Promise<DraftPost>
+  publishDraft: (id: string, accountIds: string[]) => Promise<DraftPost>
 }
 
 // Create the context

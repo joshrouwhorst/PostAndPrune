@@ -1,15 +1,17 @@
+import Logger from '@/app/api-helpers/logger'
+import { NextResponse } from 'next/server'
 import {
   getScheduleLookups,
   publishNextPost,
   reorderSchedulePosts,
 } from '../../services/SchedulePostService'
-import { NextResponse } from 'next/server'
-import Logger from '@/app/api-helpers/logger'
+
 const logger = new Logger('SchPostRoute')
-import { withBskyLogoutWithId } from '@/app/api-helpers/apiWrapper'
+
+import { withSocialLogoutWithId } from '@/app/api-helpers/apiWrapper'
 
 // Get schedule lookups
-export const GET = withBskyLogoutWithId(async (id) => {
+export const GET = withSocialLogoutWithId(async (id) => {
   try {
     if (!id) {
       logger.error('Schedule ID is required')
@@ -38,7 +40,7 @@ export const GET = withBskyLogoutWithId(async (id) => {
 })
 
 // Reorder next posts for schedule
-export const PUT = withBskyLogoutWithId(async (id, request) => {
+export const PUT = withSocialLogoutWithId(async (id, request) => {
   try {
     const { newOrder } = await request.json()
     if (!id) {
@@ -71,7 +73,7 @@ export const PUT = withBskyLogoutWithId(async (id, request) => {
 })
 
 // Publish the next post for the schedule
-export const POST = withBskyLogoutWithId(async (id) => {
+export const POST = withSocialLogoutWithId(async (id) => {
   try {
     if (!id) {
       logger.error('Schedule ID is required')

@@ -11,6 +11,13 @@ import utc from 'dayjs/plugin/utc'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
+export function randomBetween(a: number, b: number): number {
+  const min = Math.min(a, b)
+  const max = Math.max(a, b)
+  if (min === max) return min
+  return Math.random() * (max - min) + min
+}
+
 export function getDateTimeObject(
   date: Date | string,
   timeZone: string = 'UTC'
@@ -73,9 +80,6 @@ function extractMinutesFromISOString(isoString: string): string | null {
 
 export function to12HourTime(time: string): string {
   if (!time) return ''
-
-  console.log('Converting time:', time)
-  console.log('Type of time:', typeof time)
 
   if (time.includes('T')) {
     const hours = extractHoursFromISOString(time)
@@ -215,4 +219,17 @@ export function getDisplayDataFromDraft(
     group: draftPost.group,
     slug: draftPost.meta.slug,
   } as PostDisplayData
+}
+
+export function sortDaysOfTheWeek(days: string[]): string[] {
+  const dayOrder = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ]
+  return days.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b))
 }

@@ -1,4 +1,4 @@
-import { withBskyLogoutWithId } from '@/app/api-helpers/apiWrapper'
+import { withSocialLogoutWithId } from '@/app/api-helpers/apiWrapper'
 import Logger from '@/app/api-helpers/logger'
 import {
   deleteDraftPost,
@@ -12,7 +12,7 @@ import { NextResponse } from 'next/server'
 
 const logger = new Logger('DraftRoute')
 
-export const GET = withBskyLogoutWithId(async (id) => {
+export const GET = withSocialLogoutWithId(async (id) => {
   try {
     const post = await getDraftPost(id)
     if (!post) {
@@ -31,7 +31,7 @@ export const GET = withBskyLogoutWithId(async (id) => {
   }
 })
 
-export const POST = withBskyLogoutWithId(async (id, request) => {
+export const POST = withSocialLogoutWithId(async (id, request) => {
   try {
     const url = new URL(request.url)
     const duplicate = url.searchParams.get('duplicate')
@@ -76,7 +76,7 @@ export const POST = withBskyLogoutWithId(async (id, request) => {
   }
 })
 
-export const PUT = withBskyLogoutWithId(async (id, request) => {
+export const PUT = withSocialLogoutWithId(async (id, request) => {
   try {
     if (!id) {
       logger.error('Post ID is required for PUT request')
@@ -97,7 +97,7 @@ export const PUT = withBskyLogoutWithId(async (id, request) => {
   }
 })
 
-export const DELETE = withBskyLogoutWithId(async (id) => {
+export const DELETE = withSocialLogoutWithId(async (id) => {
   try {
     if (!id) {
       logger.error('Post ID is required for DELETE request')

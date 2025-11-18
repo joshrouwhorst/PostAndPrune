@@ -84,7 +84,6 @@ describe('DraftPostService', () => {
     id: 'account1',
     platform: 'bluesky',
     isActive: true,
-    isDefault: false,
     createdAt: new Date().toISOString(),
     credentials: {
       bluesky: {

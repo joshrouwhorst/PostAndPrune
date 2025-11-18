@@ -23,28 +23,37 @@ let postCache: FeedViewPost[] | null = null
 let cacheDate: Date | null = null
 const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
 
-const _agents: Map<string, AtpAgent> = new Map()
+const _agents: Map<string, { agent: AtpAgent; account: Account }> = new Map()
 
 async function getAgent(account: Account): Promise<AtpAgent> {
   if (!_agents.has(account.id)) {
     logger.log('Creating Bluesky agent.')
     const agent = await createAgent(account)
-    _agents.set(account.id, agent)
+    _agents.set(account.id, { agent, account })
   }
-  const agent = _agents.get(account.id)
+  const agent = _agents.get(account.id)?.agent
   if (!agent) throw new Error('Failed to get Bluesky agent')
   return agent
 }
 
 export async function logout(account: Account) {
   const agent = await getAgent(account)
+
   if (agent) {
-    logger.log('Logging out from Bluesky.')
+    logger.log(`Logging ${account.name} out from Bluesky.`)
     await agent.logout()
     _agents.delete(account.id)
   } else {
     logger.log('No agent to log out.')
   }
+}
+
+export async function logoutAll() {
+  for (const { agent, account } of _agents.values()) {
+    logger.log(`Logging ${account.name} out from Bluesky.`)
+    await agent.logout()
+  }
+  _agents.clear()
 }
 
 async function createAgent(account: Account): Promise<AtpAgent> {
@@ -94,7 +103,7 @@ async function createAgent(account: Account): Promise<AtpAgent> {
   return agent
 }
 
-export async function getPosts(
+export async function getPostsAsFeedViewPosts(
   account: Account,
   config?: PostFilters,
   useCache: boolean = false

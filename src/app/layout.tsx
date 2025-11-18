@@ -2,10 +2,11 @@ import type { Metadata } from 'next'
 
 declare module '*.css'
 
-import './globals.css'
 import HeaderNav from '@/components/HeaderNav'
-import SettingsProvider from '@/providers/SettingsProvider'
 import AppDataProvider from '@/providers/AppDataProvider'
+import { ModalProvider } from '@/providers/ModalProvider'
+import SettingsProvider from '@/providers/SettingsProvider'
+import './globals.css'
 
 export const metadata: Metadata = {
   title: 'BskyBackup',
@@ -27,7 +28,9 @@ export default function RootLayout({
         <div className="container mx-auto px-4 py-6">
           {/* Main content area */}
           <AppDataProvider>
-            <SettingsProvider>{children}</SettingsProvider>
+            <SettingsProvider>
+              <ModalProvider>{children}</ModalProvider>
+            </SettingsProvider>
           </AppDataProvider>
         </div>
       </body>

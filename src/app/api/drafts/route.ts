@@ -1,24 +1,23 @@
-import { NextResponse } from 'next/server'
-
 import {
-  getDraftPosts,
+  withSocialLogoutForRequest,
+  withSocialLogoutWithId,
+} from '@/app/api-helpers/apiWrapper'
+import Logger from '@/app/api-helpers/logger'
+import {
   createDraftPost,
-  updateDraftPost,
+  getDraftPosts,
   getDraftPostsInGroup,
   getDraftPostsInSchedule,
+  updateDraftPost,
 } from '@/app/api/services/DraftPostService'
 import { getSchedules } from '@/app/api/services/SchedulePostService'
 import type { CreateDraftInput, DraftPost } from '@/types/drafts'
-import Logger from '@/app/api-helpers/logger'
-import {
-  withBskyLogoutForRequest,
-  withBskyLogoutWithId,
-} from '@/app/api-helpers/apiWrapper'
-import { Schedule } from '@/types/scheduler'
+import type { Schedule } from '@/types/scheduler'
+import { NextResponse } from 'next/server'
 
 const logger = new Logger('DraftsRoute')
 
-export const GET = withBskyLogoutForRequest(async (request) => {
+export const GET = withSocialLogoutForRequest(async (request) => {
   const { searchParams } = new URL(request.url)
   const group = searchParams.get('group') || undefined
   const scheduleId = searchParams.get('schedule') || undefined
@@ -68,7 +67,7 @@ export const GET = withBskyLogoutForRequest(async (request) => {
   }
 })
 
-export const POST = withBskyLogoutForRequest(async (request) => {
+export const POST = withSocialLogoutForRequest(async (request) => {
   try {
     const input = await request.json()
     if (Array.isArray(input)) {
@@ -91,7 +90,7 @@ export const POST = withBskyLogoutForRequest(async (request) => {
   }
 })
 
-export const PUT = withBskyLogoutWithId(async (id, request) => {
+export const PUT = withSocialLogoutWithId(async (id, request) => {
   try {
     const input: CreateDraftInput = await request.json()
     if (!id) {

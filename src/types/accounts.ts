@@ -6,7 +6,6 @@ export interface Account {
   platform: SocialPlatform
   credentials: PlatformCredentials
   isActive: boolean
-  isDefault?: boolean
   createdAt: string
 }
 

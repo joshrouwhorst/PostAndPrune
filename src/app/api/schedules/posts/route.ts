@@ -1,12 +1,12 @@
 import Logger from '@/app/api-helpers/logger'
 import { type NextRequest, NextResponse } from 'next/server'
-import { withBskyLogoutAndErrorHandlingForRequest } from '../../../api-helpers/apiWrapper'
+import { withSocialLogoutAndErrorHandlingForRequest } from '../../../api-helpers/apiWrapper'
 import { publishDraftPost } from '../../services/DraftPostService'
 
 const logger = new Logger('SchPostRoute')
 
 // POST handler - wrapped with automatic Bluesky logout
-export const POST = withBskyLogoutAndErrorHandlingForRequest(
+export const POST = withSocialLogoutAndErrorHandlingForRequest(
   async (request: NextRequest) => {
     const { id } = await request.json()
 

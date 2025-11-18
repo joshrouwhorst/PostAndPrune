@@ -16,7 +16,7 @@ export async function getPosts(
 ): Promise<FeedViewPost[]> {
   switch (account.platform) {
     case 'bluesky':
-      return BlueskyAuth.getPosts(account, config, useCache)
+      return BlueskyAuth.getPostsAsFeedViewPosts(account, config, useCache)
     default:
       throw new Error(`Unsupported platform: ${account.platform}`)
   }
@@ -116,7 +116,7 @@ export async function testConnection(account: Account): Promise<boolean> {
     switch (account.platform) {
       case 'bluesky':
         // Test by trying to fetch a small number of posts
-        await BlueskyAuth.getPosts(account, undefined, false)
+        await BlueskyAuth.getPostsAsFeedViewPosts(account, undefined, false)
         return true
       default:
         throw new Error(`Unsupported platform: ${account.platform}`)

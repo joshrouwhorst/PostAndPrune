@@ -1,6 +1,6 @@
-import { getSettings, updateSettings } from '../services/SettingsService'
-import { NextResponse } from 'next/server'
 import Logger from '@/app/api-helpers/logger'
+import { NextResponse } from 'next/server'
+import { getSettings, updateSettings } from '../services/SettingsService'
 
 const logger = new Logger('SettingsRoute')
 
@@ -20,24 +20,12 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const data = await request.json()
-    const {
-      bskyDisplayName,
-      bskyIdentifier,
-      bskyPassword,
-      backupLocation,
-      hasOnboarded,
-    } = data
+    const { backupLocation, hasOnboarded } = data
     const isValid = (str: string) => {
       return typeof str === 'string' && str.trim().length > 0
     }
 
-    if (
-      !hasOnboarded &&
-      isValid(bskyDisplayName) &&
-      isValid(bskyIdentifier) &&
-      isValid(bskyPassword) &&
-      isValid(backupLocation)
-    ) {
+    if (!hasOnboarded && isValid(backupLocation)) {
       data.hasOnboarded = true
     }
 

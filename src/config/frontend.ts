@@ -8,3 +8,10 @@ export const HEADER_NAV_ITEMS = [
   { label: 'Schedules', href: '/schedules' },
   { label: 'Settings', href: '/settings' },
 ]
+
+export const LOGOS = [
+  '/logos/logo1.svg',
+  '/logos/logo2.svg',
+  '/logos/logo3.svg',
+  '/logos/logo4.svg',
+]

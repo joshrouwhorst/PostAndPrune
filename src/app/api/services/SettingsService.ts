@@ -41,6 +41,15 @@ export async function updateSettings(
       settings.accounts ?? appData.settings?.accounts ?? defaults.accounts,
   }
 
+  // Generate ID for new records
+  appData.settings.accounts = appData.settings.accounts.map((account) => ({
+    ...account,
+    id:
+      !account.id || account.id.indexOf('new') === 0
+        ? crypto.randomUUID()
+        : account.id,
+  }))
+
   await saveAppData(appData)
 
   return getSettings()

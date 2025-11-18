@@ -1,5 +1,5 @@
-import { DraftPost, CreateDraftInput } from '@/types/drafts'
-import { useCallback, useEffect, useState } from 'react'
+import type { CreateDraftInput, DraftPost } from '@/types/drafts'
+import { useCallback } from 'react'
 
 export interface DraftFilters {
   group: string | null
@@ -18,7 +18,7 @@ interface DraftHookContext {
   ) => Promise<DraftPost | null>
   deleteDraft: (id: string) => Promise<void>
   duplicateDraft: (id: string) => Promise<DraftPost>
-  publishDraft: (id: string) => Promise<DraftPost>
+  publishDraft: (id: string, accountIds: string[]) => Promise<DraftPost>
   deleteMediaFromDraft: (mediaFileUrl: string) => Promise<void>
 }
 
@@ -166,23 +166,36 @@ export function useDrafts(): DraftHookContext {
     }
   }, [])
 
-  const publishDraft = useCallback(async (id: string) => {
-    try {
-      const response = await fetch(
-        `/api/drafts/${encodeURIComponent(id)}?publish=true`,
-        {
+  const publishDraft = useCallback(
+    async (id: string, accountIds: string[]) => {
+      try {
+        const accountParams = accountIds
+          .map((accountId) => `accountIds=${encodeURIComponent(accountId)}`)
+          .join('&')
+        const url = `/api/drafts/${encodeURIComponent(
+          id
+        )}?publish=true&${accountParams}`
+
+        const response = await fetch(url, {
           method: 'POST',
+        })
+        if (!response.ok) {
+          throw new Error('Failed to publish draft')
         }
-      )
-      if (!response.ok) {
-        throw new Error('Failed to publish draft')
+
+        // The API returns a success message, but we need to fetch the updated draft
+        const updatedDraft = await getDraft(id)
+        if (!updatedDraft) {
+          throw new Error('Failed to fetch updated draft after publishing')
+        }
+
+        return updatedDraft
+      } catch (error) {
+        throw error
       }
-      const data: DraftPost = await response.json()
-      return data
-    } catch (error) {
-      throw error
-    }
-  }, [])
+    },
+    [getDraft]
+  )
 
   const deleteMediaFromDraft = useCallback(async (mediaFileUrl: string) => {
     try {
