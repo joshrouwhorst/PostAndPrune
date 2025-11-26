@@ -4,21 +4,20 @@ export interface Account {
   id: string
   name: string // User-friendly name like "Personal", "Business"
   platform: SocialPlatform
-  credentials: PlatformCredentials
+  credentials?: Credentials
   isActive: boolean
   createdAt: string
+  profile: Profile
 }
 
-export interface PlatformCredentials {
-  bluesky?: {
-    identifier: string
-    password: string
-    displayName?: string
-  }
-  mastodon?: {
-    instanceUrl: string
-    accessToken: string
-    displayName?: string
-  }
-  // Add more platforms as needed
+export interface Profile {
+  handle: string
+  displayName?: string
+  avatar?: string | null
+}
+
+export interface Credentials {
+  identifier: string
+  password: string
+  displayName?: string
 }

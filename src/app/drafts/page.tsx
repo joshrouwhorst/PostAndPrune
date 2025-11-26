@@ -1,10 +1,9 @@
 import DraftListFilters from '@/components/DraftListFilters'
 import DraftPostList from '@/components/DraftPostList'
-import { Callout } from '@/components/ui/callout'
 import { LinkButton } from '@/components/ui/forms'
+import TwoColumn from '@/components/ui/TwoColumn'
 import DraftsProvider from '@/providers/DraftsProvider'
 import { Plus } from 'lucide-react'
-import TwoColumn from '@/components/ui/TwoColumn'
 
 export default async function Drafts() {
   return (
@@ -36,13 +35,6 @@ export default async function Drafts() {
               On the bottom right of the post is a link to the group that the
               post belongs to.
             </p>
-
-            <Callout variant="danger" className="my-4">
-              <p>
-                This app is still a work in progress. Sometimes the filesystem
-                can be slow and require a few refreshes for changes to show up.
-              </p>
-            </Callout>
           </div>
         </TwoColumn.Side>
       </TwoColumn>

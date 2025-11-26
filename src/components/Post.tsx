@@ -1,12 +1,10 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: see code */
 'use client'
 
-import {
-  getDisplayDataFromDraft,
-  getDisplayDataFromPostData,
-} from '@/helpers/utils'
 import { useDraftContext } from '@/providers/DraftsProvider'
 import { useModal } from '@/providers/ModalProvider'
+import { transformDraftToDisplayData } from '@/transformers/transformDraftToDisplayData'
+import { transformPostDataToDisplayData } from '@/transformers/transformPostDataToDisplayData'
 import type { PostData } from '@/types/bsky'
 import type { DraftPost } from '@/types/drafts'
 import type { PostDisplayData } from '@/types/types'
@@ -55,9 +53,9 @@ export default function Post({
 
   // Handle conversions
   if (!displayData && postData) {
-    displayData = getDisplayDataFromPostData(postData)
+    displayData = transformPostDataToDisplayData(postData)
   } else if (!displayData && draftPost) {
-    displayData = getDisplayDataFromDraft(
+    displayData = transformDraftToDisplayData(
       draftPost,
       null, // TODO: Figure out a default display name or get it from settings
       null
@@ -144,8 +142,15 @@ export default function Post({
           </p>
 
           <AccountSelector
+            multiple={true}
             selectedAccountIds={selectedAccountIds}
-            onChange={setSelectedAccountIds}
+            onChange={({ accounts }) => {
+              if (accounts) {
+                setSelectedAccountIds(accounts.map((account) => account.id))
+              } else {
+                setSelectedAccountIds([])
+              }
+            }}
           />
 
           <div className="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -237,9 +242,9 @@ export default function Post({
                 <Folder className="w-3 h-3" /> {displayData.group}
               </span>
             )}
-            {displayData.indexedAt && (
+            {displayData.createdAt && (
               <span className="text-gray-400 text-xs ml-auto">
-                {new Date(displayData.indexedAt).toLocaleDateString()}
+                {new Date(displayData.createdAt).toLocaleDateString()}
               </span>
             )}
           </div>
@@ -375,7 +380,7 @@ export default function Post({
 
           {/* Timestamp */}
           <span className="text-gray-500 text-sm ml-1">
-            {new Date(displayData.indexedAt).toLocaleDateString()}
+            {new Date(displayData.createdAt).toLocaleDateString()}
           </span>
         </div>
         <ReplyParents parent={displayData.parent} root={displayData.root} />

@@ -8,13 +8,9 @@ export async function GET() {
   try {
     const appData = await getAppData()
     // TODO: Move this to a bluesky or backup endpoint
-    const { lastBackup, postsOnBsky, totalPostsBackedUp, oldestBskyPostDate } =
-      appData // Making sure only to expose these fields
+    const { lastBackup } = appData // Making sure only to expose these fields
     return NextResponse.json({
       lastBackup,
-      postsOnBsky,
-      totalPostsBackedUp,
-      oldestBskyPostDate,
     })
   } catch (error) {
     logger.error('Failed to fetch app data', error)

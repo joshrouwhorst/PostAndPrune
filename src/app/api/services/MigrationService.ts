@@ -1,6 +1,5 @@
-import { saveJsonToFile } from '@/app/api-helpers/utils'
 import { APP_DATA_FILE } from '@/config/main'
-import { readText } from './FileService'
+import { readEncryptedText, writeEncryptedFile } from './FileService'
 
 export interface AppInfo {
   version: string
@@ -63,7 +62,7 @@ export class MigrationService {
   }
 
   async getAppData() {
-    const oldAppData = await readText(APP_DATA_FILE)
+    const oldAppData = await readEncryptedText(APP_DATA_FILE)
     if (!oldAppData) {
       console.warn('No existing app data found during migration.')
       return
@@ -74,6 +73,6 @@ export class MigrationService {
   }
 
   async saveAppData(data: string | object): Promise<void> {
-    await saveJsonToFile(data, APP_DATA_FILE)
+    await writeEncryptedFile(APP_DATA_FILE, JSON.stringify(data))
   }
 }

@@ -1,16 +1,15 @@
 import BackupPostList from '@/components/BackupPostList'
 import BackupToolBar from '@/components/BackupToolBar'
 import Stats from '@/components/Stats'
-import { Callout } from '@/components/ui/callout'
 import Link from '@/components/ui/link'
 import TwoColumn from '@/components/ui/TwoColumn'
-import BskyBackupProvider from '@/providers/BskyBackupProvider'
+import BackupProvider from '@/providers/BackupProvider'
 import DraftProvider from '@/providers/DraftsProvider'
 
 export default async function Home() {
   return (
     <DraftProvider>
-      <BskyBackupProvider>
+      <BackupProvider>
         <TwoColumn reverseStack stackPoint="md">
           <TwoColumn.Main>
             <BackupToolBar />
@@ -29,17 +28,10 @@ export default async function Home() {
               on your Bluesky account older than the number of months you
               specify in Settings.
             </p>
-
-            <Callout variant="danger" className="my-4">
-              <p>
-                This app is still a work in progress. Sometimes the filesystem
-                can be slow and require a few refreshes for changes to show up.
-              </p>
-            </Callout>
             <Stats />
           </TwoColumn.Side>
         </TwoColumn>
-      </BskyBackupProvider>
+      </BackupProvider>
     </DraftProvider>
   )
 }

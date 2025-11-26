@@ -1,16 +1,20 @@
+import { getAppData } from '@/app/api-helpers/appData'
+import { cron } from '@/app/api-helpers/cron'
 import Logger from '@/app/api-helpers/logger'
 import {
-  getSchedules,
-  updateSchedule,
-  publishNextPost,
   getNextTriggerTimes,
+  getSchedules,
+  publishNextPost,
+  updateSchedule,
 } from '../services/SchedulePostService'
-import { cron } from '@/app/api-helpers/cron'
-import { getAppData } from '@/app/api-helpers/appData'
-import { runBackup, prunePosts } from './BackupService'
+import { prunePosts, runBackup } from './BackupService'
+import { updateAccountProfiles } from './SettingsService'
 
 const CRON_MINUTES = 5
 const TASK_ID = `task-cron`
+
+const ACCOUNT_INFO_REFRESH_MINUTES = 60
+let lastAccountInfoRefresh: Date | null = null
 
 const logger = new Logger('CronService')
 init()
@@ -40,9 +44,22 @@ export async function ensureCronIsRunning() {
 }
 
 async function cronJob() {
-  await pruneIfNeeded()
-  await backupIfNeeded()
-  await postIfNeeded()
+  try {
+    await pruneIfNeeded()
+  } catch (error) {
+    logger.error('Error during pruneIfNeeded', error)
+  }
+  try {
+    await backupIfNeeded()
+  } catch (error) {
+    logger.error('Error during backupIfNeeded', error)
+  }
+  try {
+    await postIfNeeded()
+  } catch (error) {
+    logger.error('Error during postIfNeeded', error)
+  }
+
   if (cron.hasTask(TASK_ID)) cron.removeTask(TASK_ID)
 
   cron.addTask(
@@ -90,6 +107,7 @@ export async function pruneIfNeeded() {
 
 export async function backupIfNeeded() {
   const appData = await getAppData()
+
   const settings = appData.settings
   if (
     !settings?.autoBackupFrequencyMinutes ||
@@ -183,6 +201,21 @@ export async function postIfNeeded() {
     await publishNextPost(schedule.id)
     await updateSchedule(schedule.id, { lastTriggered: now.toISOString() })
   }
+}
+
+export async function refreshAccountInfoIfNeeded() {
+  if (
+    lastAccountInfoRefresh &&
+    Date.now() - lastAccountInfoRefresh.getTime() <
+      ACCOUNT_INFO_REFRESH_MINUTES * 60 * 1000
+  ) {
+    return
+  }
+
+  logger.log('Refreshing account info for all accounts.')
+  lastAccountInfoRefresh = new Date()
+  await updateAccountProfiles()
+  logger.log('Account info refresh complete.')
 }
 
 export function unscheduleAll() {

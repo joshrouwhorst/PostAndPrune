@@ -11,14 +11,13 @@ const mockAccount: Account = {
   id: 'account1',
   name: 'Test Account',
   platform: 'bluesky',
-  credentials: {
-    bluesky: {
-      identifier: 'testuser',
-      password: 'testpass',
-    },
-  },
   isActive: true,
   createdAt: new Date().toISOString(),
+  profile: {
+    handle: 'testuser',
+    displayName: 'Test User',
+    avatar: null,
+  },
 }
 
 jest.mock('@/app/api-helpers/appData', () => ({
@@ -85,6 +84,12 @@ jest.mock('@/config/main', () => ({
 }))
 jest.mock('fs/promises', () => ({
   readFile: jest.fn(),
+}))
+jest.mock('@/app/api/services/CredentialService', () => ({
+  getCredentials: jest.fn().mockResolvedValue({
+    identifier: 'testuser',
+    password: 'testpass',
+  }),
 }))
 
 const mockLogin = jest.fn()

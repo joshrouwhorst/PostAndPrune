@@ -7,6 +7,7 @@ export const DATA_LOCATION =
   process.env.DEFAULT_DATA_LOCATION || `${SRC_DIR}/data`
 
 export const APP_DATA_FILE = `${DATA_LOCATION}/app-data/app-data`
+export const CREDENTIALS_FILE = `${DATA_LOCATION}/app-data/credentials`
 export const LOGS_PATH = `${DATA_LOCATION}/logs`
 
 // If true, prevents posting to Bluesky (for testing purposes)
@@ -35,7 +36,7 @@ export const DEFAULT_PRUNE_MONTHS = process.env.DEFAULT_PRUNE_MONTHS || 3
 export const DEFAULT_GROUP = 'default' // in all config files
 export const DEFAULT_POST_SLUG = 'draft'
 
-export const MINIMUM_MINUTES_BETWEEN_BACKUPS = 5
+export const MINIMUM_MINUTES_BETWEEN_BACKUPS = 1 // TODO: Set back to 5 after testing
 
 export const DRAFT_MEDIA_ENDPOINT = '/api/drafts/media'
 export const BACKUP_MEDIA_ENDPOINT = '/api/backup/images'

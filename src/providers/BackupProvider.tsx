@@ -1,17 +1,11 @@
 'use client'
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from 'react'
-import { useBskyBackup } from '@/hooks/useBskyBackup'
-import { PostDisplayData } from '@/types/types'
+import { useBackup } from '@/hooks/useBackup'
+import type { BackupData } from '@/types/types'
+import { createContext, type ReactNode, useContext, useState } from 'react'
 
 interface BackupContextType {
-  posts: PostDisplayData[]
+  backupData: BackupData | null
   isLoading: boolean
   filters: {
     hasMedia: boolean | null
@@ -26,27 +20,23 @@ interface BackupContextType {
 }
 
 // Create the context
-const BskyBackupContext = createContext<BackupContextType | undefined>(
-  undefined
-)
+const BackupContext = createContext<BackupContextType | undefined>(undefined)
 
-interface BskyBackupProviderProps {
+interface BackupProviderProps {
   children: ReactNode
 }
 
-export default function BskyBackupProvider({
-  children,
-}: BskyBackupProviderProps) {
-  const [filters, setFilters] = useState<{
+export default function BackupProvider({ children }: BackupProviderProps) {
+  const [filters] = useState<{
     hasMedia: boolean | null
     mediaType: string | null
   }>({
     hasMedia: null,
     mediaType: null,
   })
-  const { backup, loading, refresh, runBackup, pruneBsky } = useBskyBackup()
+  const { backup, loading, refresh, runBackup, pruneBsky } = useBackup()
   const contextValue: BackupContextType = {
-    posts: backup,
+    backupData: backup,
     isLoading: loading,
     filters,
     addFilter: () => {
@@ -64,18 +54,16 @@ export default function BskyBackupProvider({
   }
 
   return (
-    <BskyBackupContext.Provider value={contextValue}>
+    <BackupContext.Provider value={contextValue}>
       {children}
-    </BskyBackupContext.Provider>
+    </BackupContext.Provider>
   )
 }
 
-export const useBskyBackupContext = () => {
-  const context = useContext(BskyBackupContext)
+export const useBackupContext = () => {
+  const context = useContext(BackupContext)
   if (context === undefined) {
-    throw new Error(
-      'useBskyBackupContext must be used within a BskyBackupProvider'
-    )
+    throw new Error('useBackupContext must be used within a BackupProvider')
   }
   return context
 }

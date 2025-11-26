@@ -1,20 +1,48 @@
 'use client'
 
-import React from 'react'
 import PostList from '@/components/PostList'
-import { useBskyBackupContext } from '@/providers/BskyBackupProvider'
+import { useAppStateContext } from '@/providers/AppStateProvider'
+import { useBackupContext } from '@/providers/BackupProvider'
 
 export default function BackupPostList() {
-  return (
-    <PostList context={useBskyBackupContext}>
+  const { selectedAccount: account } = useAppStateContext()
+  const { backupData, isLoading } = useBackupContext()
+
+  if (!account) {
+    return (
       <div className="flex flex-col items-center justify-center py-16 text-center text-gray-500">
-        <h2 className="text-lg font-semibold mb-2">No backed up posts yet</h2>
+        <h2 className="text-lg font-semibold mb-2">No account selected</h2>
         <p className="mb-4">
           Use the{' '}
           <span className="font-semibold text-green-600">green button</span> in
           the toolbar to start a backup.
         </p>
       </div>
-    </PostList>
+    )
+  }
+
+  const backupForAccount = backupData?.backups.find(
+    (backup) => backup.account.id === account.id
   )
+
+  const posts = backupForAccount?.posts || []
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center text-gray-500">
+        <h2 className="text-lg font-semibold mb-2">Loading backup...</h2>
+      </div>
+    )
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center text-gray-500">
+        <h2 className="text-lg font-semibold mb-2">No posts found</h2>
+        <p className="mb-4">Start a backup to see your posts here.</p>
+      </div>
+    )
+  }
+
+  return <PostList posts={posts} isLoading={isLoading} />
 }

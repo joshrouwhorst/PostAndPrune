@@ -5,6 +5,8 @@
 
 type CacheData = Record<string, unknown>
 
+const expirationKeys: Record<string, NodeJS.Timeout> = {}
+
 class CacheService {
   private static instance: CacheService
   private cache: CacheData = {}
@@ -18,8 +20,25 @@ class CacheService {
     return CacheService.instance
   }
 
-  set<T = unknown>(key: string, value: unknown): T | undefined {
+  set<T = unknown>(
+    key: string,
+    value: unknown,
+    expiration?: number
+  ): T | undefined {
     this.cache[key] = value
+
+    if (expirationKeys[key]) {
+      clearTimeout(expirationKeys[key])
+      delete expirationKeys[key]
+    }
+
+    if (expiration) {
+      expirationKeys[key] = setTimeout(() => {
+        this.delete(key)
+        delete expirationKeys[key]
+      }, expiration)
+    }
+
     return value as T
   }
 

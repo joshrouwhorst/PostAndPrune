@@ -48,16 +48,25 @@ export async function downloadFile({
         fs.mkdirSync(dir, { recursive: true })
       }
 
-      // Only download if file doesn't exist
-      if (!overwrite && !fs.existsSync(filePath)) {
+      const fileExists = fs.existsSync(filePath)
+
+      // Only download if file doesn't exist or overwrite is true
+      if (!fileExists || overwrite) {
         const response = await fetch(url)
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer()
           const buffer = Buffer.from(arrayBuffer)
           fs.writeFileSync(filePath, buffer)
           return true
+        } else {
+          throw new Error(
+            `Failed to download file: ${response.status} ${
+              response.statusText
+            }. Response: ${await response.text()}`
+          )
         }
       }
+
       return false
     } catch (error) {
       console.error(`Error downloading file from ${url}:`, error)

@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import { getMigrationByFilename } from './migrations/index.js'
 import {
   type AppInfo,
   MigrationService,
@@ -163,7 +164,9 @@ async function runMigrations(app: AppInfo) {
   const previousMigrations = app.migrations || []
   const migrationDir = fs.readdirSync(MIGRATIONS_DIR)
   console.log('Found migrations:', migrationDir)
-  const migrations = migrationDir.filter((file) => file.endsWith('.ts')).sort()
+  const migrations = migrationDir
+    .filter((file) => file.endsWith('.ts') && !file.startsWith('index'))
+    .sort()
   const service = new MigrationService(app)
 
   for (const migrationFile of migrations) {
@@ -173,9 +176,16 @@ async function runMigrations(app: AppInfo) {
     }
 
     console.log(`➡️ Running migration: ${migrationFile}`)
-    const migrationPath = path.join(MIGRATIONS_DIR, migrationFile)
     try {
-      const migration = require(migrationPath)
+      const migration = await getMigrationByFilename(migrationFile)
+      // Handle both default export and named exports
+      if (!migration) {
+        console.warn(
+          `⚠️ Migration ${migrationFile} does not export a valid module`
+        )
+        continue
+      }
+
       if (typeof migration.up === 'function') {
         await migration.up(service)
         console.log(`✅ Migration ${migrationFile} applied successfully`)
@@ -199,7 +209,22 @@ async function runMigrations(app: AppInfo) {
 }
 
 // Start the application
+// TODO: reset after testing
 async function start() {
+  console.log('Opening app migration info...')
+  const app = await openAppInfo()
+
+  if (!app) {
+    throw new Error('Could not open app info')
+  }
+
+  console.log('Running migrations if needed...')
+  await runMigrations(app)
+
+  console.log('Test complete, exiting...')
+}
+
+async function startReal() {
   console.log('Opening app migration info...')
   const app = await openAppInfo()
 
@@ -219,7 +244,7 @@ async function start() {
   let serverReady = false
 
   // Listen for stdout to detect when server is ready
-  server.stdout.on('data', (data) => {
+  server.stdout.on('data', (data: Buffer) => {
     const output = data.toString()
     process.stdout.write(output) // Still show the output
 

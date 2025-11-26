@@ -6,6 +6,7 @@ const logger = new Logger('SettingsRoute')
 
 export async function GET() {
   try {
+    // Don't return the credentials for accounts, but do return the rest of the settings
     const settings = await getSettings()
     return NextResponse.json(settings)
   } catch (error) {

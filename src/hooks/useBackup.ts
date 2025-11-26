@@ -1,8 +1,8 @@
-import { PostDisplayData } from '@/types/types'
+import type { BackupData } from '@/types/types'
 import { useCallback, useEffect, useState } from 'react'
 
-export function useBskyBackup() {
-  const [backup, setBackup] = useState<PostDisplayData[]>([])
+export function useBackup() {
+  const [backup, setBackup] = useState<BackupData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
@@ -11,7 +11,7 @@ export function useBskyBackup() {
     if (!response.ok) {
       throw new Error('Failed to fetch backup data')
     }
-    const data: PostDisplayData[] = await response.json()
+    const data: BackupData = await response.json()
     return data
   }, [])
 

@@ -1,8 +1,11 @@
+import { getAccountInfo as getBskyAccountInfo } from '@/app/api-helpers/auth/BlueskyAuth'
 import { DATA_LOCATION, DEFAULT_PRUNE_MONTHS } from '@/config/main'
+import generateId from '@/helpers/generateId'
 import type { Account } from '@/types/accounts'
 import type { Settings } from '@/types/types'
 import { getAppData, saveAppData } from '../../api-helpers/appData'
 import Logger from '../../api-helpers/logger'
+import CredentialService from './CredentialService'
 
 const logger = new Logger('SettgServ')
 
@@ -29,6 +32,7 @@ export async function updateSettings(
 ): Promise<Settings> {
   logger.log(`Updating settings.`, settings)
   const appData = await getAppData()
+  const currentAccounts = appData.settings?.accounts || []
 
   appData.settings = {
     ...appData.settings,
@@ -41,14 +45,24 @@ export async function updateSettings(
       settings.accounts ?? appData.settings?.accounts ?? defaults.accounts,
   }
 
-  // Generate ID for new records
-  appData.settings.accounts = appData.settings.accounts.map((account) => ({
-    ...account,
-    id:
-      !account.id || account.id.indexOf('new') === 0
-        ? crypto.randomUUID()
-        : account.id,
-  }))
+  appData.settings.accounts.forEach(async (account) => {
+    if (
+      account.id.indexOf('new') === 0 ||
+      !currentAccounts.find((a) => a.id === account.id)
+    ) {
+      await addAccount(account)
+    } else {
+      await updateAccount(account)
+    }
+  })
+
+  const accountsToRemove = currentAccounts.filter(
+    (account) => !appData.settings?.accounts.find((a) => a.id === account.id)
+  )
+
+  accountsToRemove.forEach(async (account) => {
+    await removeAccount(account.id)
+  })
 
   await saveAppData(appData)
 
@@ -61,26 +75,55 @@ export async function getAccounts() {
 }
 
 export async function addAccount(account: Account) {
-  const settings = await getSettings()
-  const updatedAccounts = [...(settings.accounts || []), account]
-  await updateSettings({ accounts: updatedAccounts })
-  return updatedAccounts
+  account.id = generateId()
+  if (account.credentials) {
+    CredentialService.setCredentials(account, account.credentials)
+  }
+
+  if (account.platform === 'bluesky') {
+    const profile = await getBskyAccountInfo(account)
+    account.profile = profile
+  }
+}
+
+export async function updateAccount(account: Account) {
+  if (account.credentials) {
+    await CredentialService.setCredentials(account, account.credentials)
+  }
+
+  if (account.platform === 'bluesky') {
+    const profile = await getBskyAccountInfo(account)
+    account.profile = profile
+  }
 }
 
 export async function removeAccount(accountId: string) {
   const settings = await getSettings()
-  const updatedAccounts = (settings.accounts || []).filter(
-    (account) => account.id !== accountId
+  const removalAccount = settings.accounts?.find(
+    (account) => account.id === accountId
   )
-  await updateSettings({ accounts: updatedAccounts })
-  return updatedAccounts
+  if (!removalAccount) {
+    throw new Error(`Account with ID ${accountId} not found.`)
+  }
+
+  await CredentialService.removeCredentials(removalAccount)
 }
 
-export async function updateAccount(updatedAccount: Account) {
+export async function updateAccountProfiles(): Promise<void> {
   const settings = await getSettings()
-  const updatedAccounts = (settings.accounts || []).map((account) =>
-    account.id === updatedAccount.id ? updatedAccount : account
-  )
-  await updateSettings({ accounts: updatedAccounts })
-  return updatedAccounts
+  for (const account of settings.accounts || []) {
+    if (account.platform === 'bluesky') {
+      try {
+        const profile = await getBskyAccountInfo(account)
+        account.profile = profile
+        logger.log(`Updated profile for account ${account.id}`)
+      } catch (error) {
+        logger.error(
+          `Failed to update profile for account ${account.id}:`,
+          error
+        )
+      }
+    }
+  }
+  await updateSettings({ accounts: settings.accounts })
 }

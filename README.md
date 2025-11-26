@@ -1,12 +1,12 @@
-# BskyBackup
+# Post & Prune
 
-**Local backup, drafts & scheduling for Bluesky**
+**Local backup, drafts & scheduling for open social media**
 
 A Next.js application for viewing and managing your [Bluesky](https://bsky.app)
-social media backup data, create draft posts, and schedule them to be published,
-all **local** and **private**.
+social media backup data and other open social media platforms, create draft posts,
+and schedule them to be published, all **local** and **private**.
 
-![Screenshot of BskyBackup](https://github.com/joshrouwhorst/BskyBackup/blob/main/public/screenshot.png?raw=true)
+![Screenshot of Post & Prune](https://github.com/joshrouwhorst/Post-and-Prune/blob/main/public/screenshot.png?raw=true)
 
 ## Project Overview
 
@@ -73,10 +73,10 @@ Open [https://localhost:3000](https://localhost:3000) in your browser.
 
 You should be redirected to
 [https://localhost:3000/settings](https://localhost:3000/settings) until you
-input required information for setup such as your Bluesky credentials, which is
-encrypted on your filesystem.
+input required information for setup such as adding an account. Credentials are
+encrypted on your filesystem and never sent to a third party.
 
-### Bluesky Credentials
+### Bluesky Accounts
 
 I recommend setting up an app password specifically for this. On the Bluesky app
 you can go to Settings -> Privacy & Security -> App passwords to generate one.
@@ -84,8 +84,7 @@ There is no need to enable direct messages access at this time.
 
 ## Unit Testing
 
-This project does not include a formal automated test suite, but you can run
-unit tests manually using Jest. To run the tests:
+This project uses Jest for unit testing.
 
 Make sure you have all dependencies installed:
 

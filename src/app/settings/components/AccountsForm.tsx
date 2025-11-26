@@ -106,11 +106,9 @@ export interface AccountFormData {
   platform: SocialPlatform
   isActive: boolean
   credentials: {
-    bluesky: {
-      identifier: string
-      password: string
-      displayName: string
-    }
+    identifier: string
+    password: string
+    displayName: string
   }
 }
 
@@ -123,19 +121,15 @@ export function getAccountFromAccountFormData(
     name: data.name,
     platform: data.platform,
     isActive: data.isActive,
-    credentials: {},
     createdAt: existingAccount
       ? existingAccount.createdAt
       : new Date().toISOString(),
   }
 
-  // Add platform-specific credentials
-  if (data.platform === 'bluesky') {
-    account.credentials.bluesky = {
-      identifier: data.credentials.bluesky.identifier,
-      password: data.credentials.bluesky.password,
-      displayName: data.credentials.bluesky.displayName,
-    }
+  account.credentials = {
+    identifier: data.credentials.identifier,
+    password: data.credentials.password,
+    displayName: data.credentials.displayName,
   }
 
   return account
@@ -160,11 +154,9 @@ function AddEditAccountForm({
     platform: account?.platform || 'bluesky',
     isActive: account?.isActive ?? true,
     credentials: {
-      bluesky: {
-        identifier: account?.credentials.bluesky?.identifier || '',
-        password: account?.credentials.bluesky?.password || '',
-        displayName: account?.credentials.bluesky?.displayName || '',
-      },
+      identifier: account?.credentials?.identifier || '',
+      password: account?.credentials?.password || '',
+      displayName: account?.credentials?.displayName || '',
     },
   })
 
@@ -181,18 +173,14 @@ function AddEditAccountForm({
   }
 
   const updateCredentials = (
-    platform: 'bluesky',
-    field: string,
+    field: keyof AccountFormData['credentials'],
     value: string
   ) => {
     setFormData((prev) => ({
       ...prev,
       credentials: {
         ...prev.credentials,
-        [platform]: {
-          ...prev.credentials[platform],
-          [field]: value,
-        },
+        [field]: value,
       },
     }))
   }
@@ -256,9 +244,9 @@ function AddEditAccountForm({
               <Input
                 id="bluesky-identifier"
                 type="text"
-                value={formData.credentials.bluesky?.identifier || ''}
+                value={formData.credentials?.identifier || ''}
                 onChange={(e) =>
-                  updateCredentials('bluesky', 'identifier', e.target.value)
+                  updateCredentials('identifier', e.target.value)
                 }
                 placeholder="username.bsky.social or email@example.com"
                 required
@@ -270,10 +258,8 @@ function AddEditAccountForm({
               <Input
                 id="bluesky-password"
                 type="password"
-                value={formData.credentials.bluesky?.password || ''}
-                onChange={(e) =>
-                  updateCredentials('bluesky', 'password', e.target.value)
-                }
+                value={formData.credentials?.password || ''}
+                onChange={(e) => updateCredentials('password', e.target.value)}
                 placeholder="Your Bluesky password"
                 required
               />
@@ -286,9 +272,9 @@ function AddEditAccountForm({
               <Input
                 id="bluesky-displayName"
                 type="text"
-                value={formData.credentials.bluesky?.displayName || ''}
+                value={formData.credentials?.displayName || ''}
                 onChange={(e) =>
-                  updateCredentials('bluesky', 'displayName', e.target.value)
+                  updateCredentials('displayName', e.target.value)
                 }
                 placeholder="How this account appears in the app"
               />

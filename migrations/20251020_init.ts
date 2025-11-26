@@ -12,7 +12,7 @@ async function down(service) {
   }
 }
 
-module.exports = {
-  up,
-  down,
+export {
+  down, up
 }
+

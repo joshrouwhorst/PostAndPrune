@@ -1,23 +1,18 @@
 'use client'
+import logo from '@/../public/logo.svg'
 import { HEADER_NAV_ITEMS } from '@/config/frontend'
-import { randomBetween } from '@/helpers/utils'
 import clsx from 'clsx'
 import { Menu } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import logo1 from '../../public/logos/logo1.svg'
-import logo2 from '../../public/logos/logo2.svg'
-import logo3 from '../../public/logos/logo3.svg'
-import logo4 from '../../public/logos/logo4.svg'
+import { useState } from 'react'
 import { Button } from './ui/forms'
 
 const styles = {
   navBar:
-    'relative flex flex-row justify-between border-b border-gray-200 dark:border-gray-700',
-  logoContainer:
-    'relative w-16 bg-blue-200 text-blue-950 dark:border-gray-700 dark:bg-blue-950 dark:text-white',
-  logoText: 'text-2xl font-bold',
+    'relative flex flex-row justify-between border-b border-gray-200 dark:border-gray-700 h-16',
+  logoOuterContainer: 'relative h-full flex items-center p-4',
+  logoInnerContainer: 'relative h-full',
   navMenu:
     'absolute top-full right-0 lg:relative lg:top-auto lg:right-auto lg:block',
   navList:
@@ -28,24 +23,19 @@ const styles = {
   hamburgerButton: 'flex items-center px-4 lg:hidden',
 }
 
-const logos = [logo1, logo2, logo3, logo4]
-
 const HeaderNav = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [selectedLogo, setSelectedLogo] = useState(logos[0]) // Default to first logo
-
-  useEffect(() => {
-    // Only run on client side to avoid hydration mismatch
-    setSelectedLogo(logos[Math.floor(randomBetween(0, logos.length))])
-  }, [])
 
   return (
-    <div className="relative flex flex-row justify-between border-b border-gray-200 dark:border-gray-700 h-16">
-      <div className="relative h-full flex items-center py-2 px-4">
-        <div className="relative h-full" style={{ aspectRatio: '9/1' }}>
+    <div className={styles.navBar}>
+      <div className={styles.logoOuterContainer}>
+        <div
+          className={styles.logoInnerContainer}
+          style={{ aspectRatio: '9/1' }}
+        >
           <Image
-            src={selectedLogo}
-            alt="Logo"
+            src={logo}
+            alt="Post&Prune Logo"
             fill
             className="object-contain"
             sizes="(max-width: 768px) 200px, 300px"

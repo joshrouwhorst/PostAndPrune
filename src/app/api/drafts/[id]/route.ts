@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server'
 
 const logger = new Logger('DraftRoute')
 
+// Get a draft post by ID
 export const GET = withSocialLogoutWithId(async (id) => {
   try {
     const post = await getDraftPost(id)
@@ -31,6 +32,7 @@ export const GET = withSocialLogoutWithId(async (id) => {
   }
 })
 
+// Publishing or Duplicating a draft post
 export const POST = withSocialLogoutWithId(async (id, request) => {
   try {
     const url = new URL(request.url)
@@ -55,9 +57,11 @@ export const POST = withSocialLogoutWithId(async (id, request) => {
     }
 
     if (duplicate === 'true') {
+      // Duplicate the post if requested
       const duplicatedPost = await duplicateDraftPost(id)
       return NextResponse.json(duplicatedPost, { status: 201 })
     } else if (publish === 'true') {
+      // Publish the post if requested
       await publishDraftPost({ id, accountIds })
       return NextResponse.json({ message: 'Post published' }, { status: 201 })
     } else {
@@ -76,6 +80,7 @@ export const POST = withSocialLogoutWithId(async (id, request) => {
   }
 })
 
+// Update a draft post by ID
 export const PUT = withSocialLogoutWithId(async (id, request) => {
   try {
     if (!id) {
@@ -97,6 +102,7 @@ export const PUT = withSocialLogoutWithId(async (id, request) => {
   }
 })
 
+// Delete a draft post by ID
 export const DELETE = withSocialLogoutWithId(async (id) => {
   try {
     if (!id) {

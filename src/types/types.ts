@@ -1,13 +1,9 @@
 import type { Account } from './accounts'
-import { PostData } from './bsky'
 import type { Schedule } from './scheduler'
 
 export interface AppData {
   lastBackup?: string | null
   lastPrune?: string | null
-  postsOnBsky?: number | null
-  totalPostsBackedUp?: number | null
-  oldestBskyPostDate?: string | null
   schedules?: Schedule[] | null
   settings?: Settings | null
 }
@@ -22,15 +18,19 @@ export interface Settings {
   accounts: Account[]
 }
 
+// Container for all the AccountBackup records
 export interface BackupData {
-  lastBackup: string | null
   backups: AccountBackup[]
+  lastBackupDate: string | null
 }
 
+// Backup data for a single account
 export interface AccountBackup {
   account: Account
-  posts: PostData[]
+  posts: PostDisplayData[]
   backupDate: string
+  totalPosts: number
+  oldestPostDate: string | null
 }
 
 export interface PostMedia {
@@ -53,6 +53,7 @@ export interface PostDisplayData {
     handle?: string
   }
   indexedAt: string
+  createdAt: string // Created at seems to be more reliably the same whereas indexedAt can change
   likeCount?: number
   replyCount?: number
   repostCount?: number

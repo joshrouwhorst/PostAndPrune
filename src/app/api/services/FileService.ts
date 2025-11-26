@@ -1,8 +1,11 @@
+import Logger from '@/app/api-helpers/logger'
+import { ENCRYPTION_KEY } from '@/config/main'
+import crypto from 'crypto'
 import { promises as fs } from 'fs'
 import path from 'path'
-import Logger from '../../api-helpers/logger'
 
 const logger = new Logger('FileService')
+const IV_LENGTH = 16
 
 export interface FileNode {
   name: string
@@ -14,10 +17,55 @@ export interface FileNode {
   children?: Map<string, FileNode>
 }
 
+export function encrypt(text: string, key?: string): string {
+  const iv = crypto.randomBytes(IV_LENGTH)
+  const cipher = crypto.createCipheriv(
+    'aes-256-cbc',
+    Buffer.from(key || ENCRYPTION_KEY),
+    iv
+  )
+  let encrypted = cipher.update(text, 'utf8', 'base64')
+  encrypted += cipher.final('base64')
+  return iv.toString('base64') + ':' + encrypted
+}
+
+export function decrypt(text: string, key?: string): string {
+  const [ivBase64, encryptedData] = text.split(':')
+  const iv = Buffer.from(ivBase64, 'base64')
+  const decipher = crypto.createDecipheriv(
+    'aes-256-cbc',
+    Buffer.from(key || ENCRYPTION_KEY),
+    iv
+  )
+  let decrypted = decipher.update(encryptedData, 'base64', 'utf8')
+  decrypted += decipher.final('utf8')
+  return decrypted
+}
+
+export async function changeEncryptionKey(oldKey: string, newKey: string, path: string) {
+  const content = await readText(path)
+  if (!content) return
+  const decryptedContent = decrypt(content, oldKey)
+  const encryptedContent = encrypt(decryptedContent, newKey)
+  await writeFile(path, encryptedContent)
+}
+
 export async function readText(filePath: string): Promise<string | null> {
   try {
     const content = await readFile(filePath)
     return content?.toString('utf-8') || null
+  } catch (error) {
+    logger.error(`Failed to read file ${filePath}`, error)
+    throw error
+  }
+}
+
+export async function readEncryptedText(filePath: string): Promise<string | null> {
+  try {
+    const content = await readText(filePath)
+    if (!content) return null
+    const decryptedContent = decrypt(content)
+    return decryptedContent
   } catch (error) {
     logger.error(`Failed to read file ${filePath}`, error)
     throw error
@@ -54,6 +102,23 @@ export async function writeFile(
     throw error
   }
 }
+
+export async function writeEncryptedFile(filePath: string, content: string | Buffer): Promise<void> {
+  try {
+    if (typeof content !== 'string') {
+      content = content.toString('utf-8')
+    }
+
+    const resolvedPath = path.resolve(filePath)
+    const parentDir = path.dirname(resolvedPath)
+    await fs.mkdir(parentDir, { recursive: true })
+    const encryptedContent = encrypt(content)
+    await fs.writeFile(resolvedPath, encryptedContent)
+  } catch (error) {
+    logger.error(`Failed to write file ${filePath}`, error)
+    throw error
+  }
+} 
 
 export async function deleteFileOrDirectory(targetPath: string): Promise<void> {
   const resolvedPath = path.resolve(targetPath)
@@ -184,3 +249,4 @@ export async function listFiles(
     throw error
   }
 }
+

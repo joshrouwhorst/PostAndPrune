@@ -1,9 +1,14 @@
+import { getCache, setCache } from '@/app/api/services/CacheService'
+import CredentialService from '@/app/api/services/CredentialService'
+import type { PostDisplayData } from '@/components/Post'
 import { getPaths, PREVENT_POSTING } from '@/config/main'
 import { wait } from '@/helpers/utils'
-import type { Account } from '@/types/accounts'
+import { transformFeedViewPostToDisplayData } from '@/transformers/transformFeedViewPostToDisplayData'
+import type { Account, Credentials } from '@/types/accounts'
 import type { FeedViewPost } from '@/types/bsky'
 import type { DraftPost } from '@/types/drafts'
 import { AtpAgent, RichText } from '@atproto/api'
+import type * as AppBskyActorGetProfile from '@atproto/api/src/client/types/app/bsky/actor/getProfile'
 import ExifReader from 'exifreader'
 import fs from 'fs/promises'
 import path from 'path'
@@ -14,22 +19,31 @@ const logger = new Logger('BlueskySvc')
 
 const governor = new Governor(1000)
 
+function cacheId(accountId: string) {
+  return `backup-cache-${accountId}`
+}
+
 export interface PostFilters {
   cutoffDate?: Date
   isComment?: boolean // whether to delete comments/replies as well
 }
 
-let postCache: FeedViewPost[] | null = null
-let cacheDate: Date | null = null
 const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
 
-const _agents: Map<string, { agent: AtpAgent; account: Account }> = new Map()
+const _agents: Map<
+  string,
+  { agent: AtpAgent; account: Account; credentials: Credentials }
+> = new Map()
 
 async function getAgent(account: Account): Promise<AtpAgent> {
   if (!_agents.has(account.id)) {
     logger.log('Creating Bluesky agent.')
-    const agent = await createAgent(account)
-    _agents.set(account.id, { agent, account })
+    const credentials = await CredentialService.getCredentials(account)
+    if (!credentials) {
+      throw new Error('No credentials found for account')
+    }
+    const agent = await createAgent(account, credentials)
+    _agents.set(account.id, { agent, account, credentials })
   }
   const agent = _agents.get(account.id)?.agent
   if (!agent) throw new Error('Failed to get Bluesky agent')
@@ -56,9 +70,12 @@ export async function logoutAll() {
   _agents.clear()
 }
 
-async function createAgent(account: Account): Promise<AtpAgent> {
-  const BSKY_IDENTIFIER = account.credentials.bluesky?.identifier
-  const BSKY_PASSWORD = account.credentials.bluesky?.password
+async function createAgent(
+  account: Account,
+  credentials: Credentials
+): Promise<AtpAgent> {
+  const BSKY_IDENTIFIER = credentials.identifier
+  const BSKY_PASSWORD = credentials.password
 
   if (!BSKY_IDENTIFIER || !BSKY_PASSWORD) {
     logger.error(
@@ -103,21 +120,62 @@ async function createAgent(account: Account): Promise<AtpAgent> {
   return agent
 }
 
+export async function getAccountInfo(
+  account: Account
+): Promise<{ handle: string; displayName?: string; avatar: string | null }> {
+  const agent = await getAgent(account)
+  await governor.wait()
+  const response = (await agent.getProfile({
+    actor: 'self',
+  })) as AppBskyActorGetProfile.Response
+  if (!response.success) {
+    throw new Error('Failed to fetch account profile')
+  }
+
+  return {
+    handle: response.data.handle,
+    displayName: response.data.displayName,
+    avatar: response.data.avatar || null,
+  }
+}
+
+export async function getPosts(
+  account: Account,
+  config?: PostFilters,
+  useCache: boolean = false
+): Promise<PostDisplayData[]> {
+  try {
+    const posts = await getPostsAsFeedViewPosts(account, config, useCache)
+    setCache(cacheId(account.id), posts)
+    return posts.map((post) =>
+      transformFeedViewPostToDisplayData(post, account.id)
+    )
+  } catch (error) {
+    logger.error('Error fetching posts:', error)
+    throw new Error(
+      `Failed to fetch posts: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
+    )
+  }
+}
+
 export async function getPostsAsFeedViewPosts(
   account: Account,
   config?: PostFilters,
   useCache: boolean = false
 ): Promise<FeedViewPost[]> {
+  const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
+
+  if (useCache && cache) {
+    return cache
+  }
+
   const agent = await getAgent(account)
-  // Use cached posts if within cache duration
-  if (
-    useCache &&
-    postCache &&
-    cacheDate &&
-    Date.now() - cacheDate.getTime() < CACHE_DURATION_MS
-  ) {
-    logger.log('Using cached posts.')
-    return postCache
+
+  const credentials = await CredentialService.getCredentials(account)
+  if (!credentials) {
+    throw new Error('No credentials found for account')
   }
 
   await governor.wait()
@@ -125,7 +183,7 @@ export async function getPostsAsFeedViewPosts(
   const postList: FeedViewPost[] = []
 
   try {
-    const BSKY_IDENTIFIER = account.credentials.bluesky?.identifier
+    const BSKY_IDENTIFIER = credentials.identifier
 
     if (!BSKY_IDENTIFIER) {
       logger.error('Cannot find Bluesky identifier in settings')
@@ -163,8 +221,7 @@ export async function getPostsAsFeedViewPosts(
       cursor = response.data.cursor
     } while (cursor)
 
-    postCache = postList
-    cacheDate = new Date()
+    setCache(cacheId(account.id), postList, CACHE_DURATION_MS)
   } catch (error) {
     logger.error('Error fetching posts:', error)
     throw new Error(
@@ -194,6 +251,14 @@ export async function deletePostsWithUris(
         continue
       }
       await agent.deletePost(postUri)
+
+      // Update cache
+      const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
+      if (cache) {
+        const updatedCache = cache.filter((post) => post.post.uri !== postUri)
+        setCache(cacheId(account.id), updatedCache, CACHE_DURATION_MS)
+      }
+
       logger.log(`Successfully deleted post: ${postUri}`)
     }
   } catch (error) {
@@ -211,9 +276,15 @@ export async function deletePosts(
   config: PostFilters
 ): Promise<void> {
   const agent = await getAgent(account)
+
+  const credentials = await CredentialService.getCredentials(account)
+  if (!credentials) {
+    throw new Error('No credentials found for account')
+  }
+
   await governor.wait()
 
-  const BSKY_IDENTIFIER = account.credentials.bluesky?.identifier
+  const BSKY_IDENTIFIER = credentials.identifier
 
   if (!BSKY_IDENTIFIER) {
     logger.error('Cannot find Bluesky identifier in settings')
@@ -263,7 +334,7 @@ export async function deletePosts(
         cursor = response.data.cursor
 
         // Add a small delay between requests to avoid rate limiting
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        await governor.wait(500)
       } catch (fetchError) {
         console.error(`Error fetching page ${pageCount}:`, fetchError)
 
@@ -285,7 +356,7 @@ export async function deletePosts(
 
     console.log(`Found ${postsToDelete.length} posts to delete`)
 
-    // Delete the old posts
+    // Delete the posts
     for (let i = 0; i < postsToDelete.length; i++) {
       const postUri = postsToDelete[i]
       try {
@@ -301,8 +372,15 @@ export async function deletePosts(
         }
         await agent.deletePost(postUri)
 
+        // Update cache
+        const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
+        if (cache) {
+          const updatedCache = cache.filter((post) => post.post.uri !== postUri)
+          setCache(cacheId(account.id), updatedCache, CACHE_DURATION_MS)
+        }
+
         // Add delay between deletions to avoid rate limiting
-        await wait(500)
+        await governor.wait(500)
       } catch (deleteError) {
         logger.error(`Error deleting post ${postUri}:`, deleteError)
 
@@ -407,7 +485,7 @@ export async function addPost(
     await richText.detectFacets(agent)
 
     await governor.wait(200)
-    await agent.post({
+    const postData = {
       text: richText.text,
       createdAt: new Date().toISOString(),
       langs: ['en'],
@@ -425,7 +503,15 @@ export async function addPost(
             ...uploadedVideo,
           }
         : undefined,
-    })
+    }
+
+    await agent.post(postData)
+
+    // Invalidate cache to ensure fresh data on next fetch
+    const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
+    if (cache) {
+      setCache(cacheId(account.id), null) // Clear cache
+    }
 
     console.log(`Successfully added post: ${post.meta.text}`)
   } catch (error) {
