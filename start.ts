@@ -2,7 +2,10 @@
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import { getMigrationByFilename } from './migrations/index.js'
+import {
+  getAllMigrationFilenames,
+  getMigrationByFilename,
+} from './migrations/index.js'
 import {
   type AppInfo,
   MigrationService,
@@ -10,7 +13,6 @@ import {
 
 console.log('Starting BskyBackup application...')
 
-const MIGRATIONS_DIR = path.join(process.cwd(), 'migrations')
 const APP_INFO_PATH = path.join(process.cwd(), '.migrations.json')
 const PACKAGE_JSON_PATH = path.join(process.cwd(), 'package.json')
 
@@ -162,11 +164,8 @@ async function saveAppInfo(app: AppInfo) {
 
 async function runMigrations(app: AppInfo) {
   const previousMigrations = app.migrations || []
-  const migrationDir = fs.readdirSync(MIGRATIONS_DIR)
-  console.log('Found migrations:', migrationDir)
-  const migrations = migrationDir
-    .filter((file) => file.endsWith('.ts') && !file.startsWith('index'))
-    .sort()
+  const migrations = getAllMigrationFilenames()
+
   const service = new MigrationService(app)
 
   for (const migrationFile of migrations) {
@@ -209,22 +208,7 @@ async function runMigrations(app: AppInfo) {
 }
 
 // Start the application
-// TODO: reset after testing
 async function start() {
-  console.log('Opening app migration info...')
-  const app = await openAppInfo()
-
-  if (!app) {
-    throw new Error('Could not open app info')
-  }
-
-  console.log('Running migrations if needed...')
-  await runMigrations(app)
-
-  console.log('Test complete, exiting...')
-}
-
-async function startReal() {
   console.log('Opening app migration info...')
   const app = await openAppInfo()
 
