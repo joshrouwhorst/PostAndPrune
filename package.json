@@ -13,7 +13,7 @@
     "docker:build": "docker build -t post-and-prune ."
   },
   "dependencies": {
-    "@atproto/api": "^0.16.9",
+    "@atproto/api": "^0.18.3",
     "@tailwindcss/postcss": "^4.1.13",
     "clsx": "^2.1.1",
     "cookies-next": "^6.1.1",
@@ -27,7 +27,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tailwindcss": "^4.1.13",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsconfig": "^7.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",

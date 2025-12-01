@@ -1,6 +1,6 @@
 'use client'
 
-import { useAppDataContext } from '@/providers/AppDataProvider'
+import { useBackupContext } from '@/providers/BackupProvider'
 
 const getTimeString = (dateString: string | null | undefined) => {
   if (!dateString) return 'Never'
@@ -27,12 +27,18 @@ const getTimeString = (dateString: string | null | undefined) => {
 }
 
 export default function Stats() {
-  const { appData, isLoading: adLoading } = useAppDataContext()
+  const { backupData, isLoading: backupLoading } = useBackupContext()
 
-  let lastBackup = getTimeString(appData?.lastBackup)
-  let oldestBskyPostDate = getTimeString(appData?.oldestBskyPostDate)
+  console.log('Backup Data in Stats:', backupData)
 
-  if (adLoading) {
+  let lastBackup = getTimeString(backupData?.lastBackupDate)
+  const accountsBackedUp = backupData?.backups.length
+  const postsBackedUp = backupData?.backups.reduce(
+    (sum, acc) => sum + acc.totalPosts,
+    0
+  )
+
+  if (backupLoading) {
     return (
       <div className="max-w-xs bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">
         <div>Loading</div>
@@ -43,9 +49,16 @@ export default function Stats() {
   return (
     <div className="max-w-xs bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">
       <div>Last Backup: {lastBackup}</div>
-      <div>Total Posts: {appData?.totalPostsBackedUp || 0}</div>
-      <div>Oldest Bsky Post: {oldestBskyPostDate}</div>
-      <div>Bsky Posts: {appData?.postsOnBsky || 0}</div>
+      <div>Total Posts: {postsBackedUp || 0}</div>
+      <div>Accounts Backed Up: {accountsBackedUp || 0}</div>
+      <div>
+        {backupData?.backups.map((accountBackup) => (
+          <div key={accountBackup.account.id} className="mt-2">
+            <strong>{accountBackup.account.name}</strong>:{' '}
+            {accountBackup.totalPosts} posts
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
