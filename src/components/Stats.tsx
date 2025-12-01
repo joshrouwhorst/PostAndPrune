@@ -31,7 +31,7 @@ export default function Stats() {
 
   console.log('Backup Data in Stats:', backupData)
 
-  let lastBackup = getTimeString(backupData?.lastBackupDate)
+  const lastBackup = getTimeString(backupData?.lastBackupDate)
   const accountsBackedUp = backupData?.backups.length
   const postsBackedUp = backupData?.backups.reduce(
     (sum, acc) => sum + acc.totalPosts,
