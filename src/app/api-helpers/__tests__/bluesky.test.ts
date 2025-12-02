@@ -4,7 +4,7 @@ import type { Account } from '@/types/accounts'
 import type { DraftPost } from '@/types/drafts'
 import type { Settings } from '@/types/types'
 import { AtpAgent } from '@atproto/api'
-import fs from 'fs/promises'
+import fs from 'node:fs/promises'
 import * as blueskyHelpers from '../auth/BlueskyAuth'
 
 const mockAccount: Account = {
@@ -16,7 +16,6 @@ const mockAccount: Account = {
   profile: {
     handle: 'testuser',
     displayName: 'Test User',
-    avatar: null,
   },
 }
 
@@ -40,7 +39,6 @@ jest.mock('@/app/api-helpers/appData', () => ({
 jest.mock('@/app/api-helpers/logger', () => ({
   __esModule: true,
   default: class {
-    constructor() {}
     warn = jest.fn()
     error = jest.fn()
     log = jest.fn()
@@ -186,7 +184,7 @@ describe('bluesky helpers', () => {
 
     it('throws if cutoffDate is missing', async () => {
       await expect(blueskyHelpers.deletePosts(mockAccount, {})).rejects.toThrow(
-        'cutoffDate is required'
+        'cutoffDate is required',
       )
     })
   })

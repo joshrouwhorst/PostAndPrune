@@ -18,7 +18,7 @@ export function useSettings(): SettingsHookContext {
   }
 
   const updateSettings = async (
-    newSettings: Partial<Settings>
+    newSettings: Partial<Settings>,
   ): Promise<Settings> => {
     const response = await fetch('/api/settings', {
       method: 'PUT',

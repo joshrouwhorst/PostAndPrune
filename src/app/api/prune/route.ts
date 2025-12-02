@@ -1,3 +1,4 @@
+/** biome-ignore-all assist/source/organizeImports: a */
 import Logger from '@/app/api-helpers/logger'
 import { NextResponse } from 'next/server'
 import { withSocialLogoutAndErrorHandling } from '../../api-helpers/apiWrapper'
@@ -14,7 +15,7 @@ export const POST = withSocialLogoutAndErrorHandling(async () => {
     logger.error('Failed to prune posts', error)
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })

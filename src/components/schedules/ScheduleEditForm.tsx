@@ -109,7 +109,7 @@ export default function ScheduleEditForm({
                         setEditForm((prev) => ({
                           ...prev,
                           accounts: prev.accounts?.filter(
-                            (a) => a.id !== acc.id
+                            (a) => a.id !== acc.id,
                           ),
                         }))
                       }
@@ -132,7 +132,7 @@ export default function ScheduleEditForm({
             onChange={(e) => {
               const accountId = e.target.value
               const accountToAdd = settings?.accounts?.find(
-                (acc) => acc.id === accountId
+                (acc) => acc.id === accountId,
               )
               if (accountToAdd) {
                 setEditForm((prev) => ({
@@ -148,7 +148,7 @@ export default function ScheduleEditForm({
             </Select.Option>
             {settings?.accounts
               ?.filter(
-                (acc) => !editForm.accounts?.some((a) => a.id === acc.id)
+                (acc) => !editForm.accounts?.some((a) => a.id === acc.id),
               )
               .map((acc) => (
                 <Select.Option key={acc.id} value={acc.id}>

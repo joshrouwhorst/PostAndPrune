@@ -27,7 +27,7 @@ export const GET = withSocialLogoutWithId(async (id) => {
       {
         error: id ? 'Failed to fetch post' : 'Failed to fetch app data',
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
@@ -44,7 +44,7 @@ export const POST = withSocialLogoutWithId(async (id, request) => {
       logger.error('Post ID not provided for POST request')
       return NextResponse.json(
         { error: 'Post ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -52,7 +52,7 @@ export const POST = withSocialLogoutWithId(async (id, request) => {
       logger.error('Account IDs are required for publishing')
       return NextResponse.json(
         { error: 'Account IDs are required for publishing' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -68,14 +68,14 @@ export const POST = withSocialLogoutWithId(async (id, request) => {
       logger.error('Invalid action for POST request')
       return NextResponse.json(
         { error: 'Invalid action. To duplicate, set duplicate=true in query.' },
-        { status: 400 }
+        { status: 400 },
       )
     }
   } catch (error) {
     logger.error('Failed to process POST request', error)
     return NextResponse.json(
       { error: 'Failed to create post' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
@@ -87,7 +87,7 @@ export const PUT = withSocialLogoutWithId(async (id, request) => {
       logger.error('Post ID is required for PUT request')
       return NextResponse.json(
         { error: 'Post ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
     const input: DraftPost = await request.json()
@@ -97,7 +97,7 @@ export const PUT = withSocialLogoutWithId(async (id, request) => {
     logger.error('Failed to update post', error)
     return NextResponse.json(
       { error: 'Failed to update post' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
@@ -109,7 +109,7 @@ export const DELETE = withSocialLogoutWithId(async (id) => {
       logger.error('Post ID is required for DELETE request')
       return NextResponse.json(
         { error: 'Post ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
     await deleteDraftPost(id)
@@ -118,7 +118,7 @@ export const DELETE = withSocialLogoutWithId(async (id) => {
     logger.error('Failed to delete post', error)
     return NextResponse.json(
       { error: 'Failed to delete post' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })

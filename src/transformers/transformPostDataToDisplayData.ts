@@ -5,7 +5,7 @@ import type { PostData } from '@/types/bsky'
 import type { PostDisplayData } from '@/types/types'
 
 export function transformPostDataToDisplayData(
-  postData: PostData
+  postData: PostData,
 ): PostDisplayData {
   const videoObj = {
     url: '',
@@ -50,7 +50,7 @@ export function transformPostDataToDisplayData(
           height: img.aspectRatio.height,
           size: 0, // Size not provided in embed data
         })
-      }
+      },
     )
   }
 
@@ -58,7 +58,7 @@ export function transformPostDataToDisplayData(
     videoObj.url =
       getVideoFilePath(
         postData.post.cid || '',
-        new Date(postData.post.indexedAt).getFullYear().toString()
+        new Date(postData.post.indexedAt).getFullYear().toString(),
       ) || ''
     videoObj.width = record.embed.aspectRatio?.width || videoObj.width
     videoObj.height = record.embed.aspectRatio?.height || videoObj.height

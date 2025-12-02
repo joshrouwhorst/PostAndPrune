@@ -58,7 +58,7 @@ export default function Post({
     displayData = transformDraftToDisplayData(
       draftPost,
       null, // TODO: Figure out a default display name or get it from settings
-      null
+      null,
     )
   }
 
@@ -250,7 +250,7 @@ export default function Post({
           </div>
           <div className="text-sm text-gray-900 dark:text-gray-100 mt-1 line-clamp-2 break-words">
             {displayData.text.length > 120
-              ? displayData.text.slice(0, 120) + '…'
+              ? `${displayData.text.slice(0, 120)}…`
               : displayData.text}
             {displayData.images && displayData.images.length > 0 && (
               <div className="mt-2 relative flex flex-row gap-1">

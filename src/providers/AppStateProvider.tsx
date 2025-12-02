@@ -58,7 +58,7 @@ const loadAppStateFromCookie = (): AppState => {
 
 // Create the context
 const AppStateContext = createContext<AppStateWithActions | undefined>(
-  undefined
+  undefined,
 )
 
 interface AppStateProviderProps {
@@ -106,7 +106,7 @@ export const useAppStateContext = () => {
   const context = useContext(AppStateContext)
   if (context === undefined) {
     throw new Error(
-      'useAppStateContext must be used within an AppStateProvider'
+      'useAppStateContext must be used within an AppStateProvider',
     )
   }
   return context

@@ -22,7 +22,7 @@ export default function BackupPostList() {
   }
 
   const backupForAccount = backupData?.backups.find(
-    (backup) => backup.account.id === account.id
+    (backup) => backup.account.id === account.id,
   )
 
   const posts = backupForAccount?.posts || []

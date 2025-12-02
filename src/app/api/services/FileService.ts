@@ -1,8 +1,8 @@
 import Logger from '@/app/api-helpers/logger'
 import { ENCRYPTION_KEY } from '@/config/main'
-import crypto from 'crypto'
-import { promises as fs } from 'fs'
-import path from 'path'
+import crypto from 'node:crypto'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 
 const logger = new Logger('FileService')
 const IV_LENGTH = 16
@@ -22,11 +22,11 @@ export function encrypt(text: string, key?: string): string {
   const cipher = crypto.createCipheriv(
     'aes-256-cbc',
     Buffer.from(key || ENCRYPTION_KEY),
-    iv
+    iv,
   )
   let encrypted = cipher.update(text, 'utf8', 'base64')
   encrypted += cipher.final('base64')
-  return iv.toString('base64') + ':' + encrypted
+  return `${iv.toString('base64')}:${encrypted}`
 }
 
 export function decrypt(text: string, key?: string): string {
@@ -35,14 +35,18 @@ export function decrypt(text: string, key?: string): string {
   const decipher = crypto.createDecipheriv(
     'aes-256-cbc',
     Buffer.from(key || ENCRYPTION_KEY),
-    iv
+    iv,
   )
   let decrypted = decipher.update(encryptedData, 'base64', 'utf8')
   decrypted += decipher.final('utf8')
   return decrypted
 }
 
-export async function changeEncryptionKey(oldKey: string, newKey: string, path: string) {
+export async function changeEncryptionKey(
+  oldKey: string,
+  newKey: string,
+  path: string,
+) {
   const content = await readText(path)
   if (!content) return
   const decryptedContent = decrypt(content, oldKey)
@@ -60,7 +64,9 @@ export async function readText(filePath: string): Promise<string | null> {
   }
 }
 
-export async function readEncryptedText(filePath: string): Promise<string | null> {
+export async function readEncryptedText(
+  filePath: string,
+): Promise<string | null> {
   try {
     const content = await readText(filePath)
     if (!content) return null
@@ -89,7 +95,7 @@ export async function readFile(filePath: string): Promise<Buffer | null> {
 
 export async function writeFile(
   filePath: string,
-  content: string | Buffer
+  content: string | Buffer,
 ): Promise<void> {
   const resolvedPath = path.resolve(filePath)
   const parentDir = path.dirname(resolvedPath)
@@ -103,7 +109,10 @@ export async function writeFile(
   }
 }
 
-export async function writeEncryptedFile(filePath: string, content: string | Buffer): Promise<void> {
+export async function writeEncryptedFile(
+  filePath: string,
+  content: string | Buffer,
+): Promise<void> {
   try {
     if (typeof content !== 'string') {
       content = content.toString('utf-8')
@@ -118,7 +127,7 @@ export async function writeEncryptedFile(filePath: string, content: string | Buf
     logger.error(`Failed to write file ${filePath}`, error)
     throw error
   }
-} 
+}
 
 export async function deleteFileOrDirectory(targetPath: string): Promise<void> {
   const resolvedPath = path.resolve(targetPath)
@@ -151,7 +160,7 @@ export async function createDirectory(dirPath: string): Promise<void> {
 
 export async function moveFileOrDirectory(
   oldPath: string,
-  newPath: string
+  newPath: string,
 ): Promise<void> {
   const resolvedOldPath = path.resolve(oldPath)
   const resolvedNewPath = path.resolve(newPath)
@@ -162,14 +171,14 @@ export async function moveFileOrDirectory(
   } catch (error) {
     logger.error(
       `Failed to move ${resolvedOldPath} to ${resolvedNewPath}`,
-      error
+      error,
     )
     throw error
   }
 }
 
 export async function moveFilesOrDirectories(
-  paths: { oldPath: string; newPath: string }[]
+  paths: { oldPath: string; newPath: string }[],
 ): Promise<void> {
   for (const { oldPath, newPath } of paths) {
     await moveFileOrDirectory(oldPath, newPath)
@@ -178,7 +187,7 @@ export async function moveFilesOrDirectories(
 
 export async function copyFileOrDirectory(
   sourcePath: string,
-  destinationPath: string
+  destinationPath: string,
 ): Promise<void> {
   const resolvedSourcePath = path.resolve(sourcePath)
   const resolvedDestPath = path.resolve(destinationPath)
@@ -189,14 +198,14 @@ export async function copyFileOrDirectory(
   } catch (error) {
     logger.error(
       `Failed to copy ${resolvedSourcePath} to ${resolvedDestPath}`,
-      error
+      error,
     )
     throw error
   }
 }
 
 export async function copyFilesOrDirectories(
-  paths: { sourcePath: string; destinationPath: string }[]
+  paths: { sourcePath: string; destinationPath: string }[],
 ): Promise<void> {
   for (const { sourcePath, destinationPath } of paths) {
     await copyFileOrDirectory(sourcePath, destinationPath)
@@ -216,7 +225,7 @@ export async function checkIfExists(targetPath: string): Promise<boolean> {
 
 export async function listFiles(
   dirPath: string,
-  recursive: boolean = false
+  recursive: boolean = false,
 ): Promise<FileNode[]> {
   const resolvedPath = path.resolve(dirPath)
 
@@ -249,4 +258,3 @@ export async function listFiles(
     throw error
   }
 }
-

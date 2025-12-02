@@ -30,5 +30,5 @@ export const POST = withSocialLogoutAndErrorHandlingForRequest(
       success: true,
       message: 'Backup completed successfully',
     })
-  }
+  },
 )

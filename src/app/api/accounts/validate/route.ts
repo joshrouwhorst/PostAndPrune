@@ -11,7 +11,7 @@ export const POST = withSocialLogoutForRequest(async (request: Request) => {
     if (!account.platform || !account.name || !account.credentials) {
       return NextResponse.json(
         { valid: false, error: 'Missing required fields' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -22,7 +22,7 @@ export const POST = withSocialLogoutForRequest(async (request: Request) => {
     console.error('Error validating account:', error)
     return NextResponse.json(
       { valid: false, error: 'Invalid request body' },
-      { status: 400 }
+      { status: 400 },
     )
   }
 })

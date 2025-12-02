@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-import { getPaths } from '@/config/main'
 import Logger from '@/app/api-helpers/logger'
+import { getPaths } from '@/config/main'
+import { type NextRequest, NextResponse } from 'next/server'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const logger = new Logger('DraftMediaRoute')
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: Promise<{ path: string[] }> },
 ) {
   try {
-    const { draftPostsPath } = await getPaths()
+    const { draftPostsPath } = getPaths()
     const resolvedParams = await params
     const imagePath = path.join(draftPostsPath, ...resolvedParams.path)
 
@@ -68,10 +68,14 @@ function getContentType(ext: string): string {
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  {
+    params,
+  }: {
+    params: Promise<{ path: string[] }>
+  },
 ) {
   try {
-    const { draftPostsPath } = await getPaths()
+    const { draftPostsPath } = getPaths()
     const resolvedParams = await params
     const imagePath = path.join(draftPostsPath, ...resolvedParams.path)
 

@@ -28,7 +28,7 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function updateSettings(
-  settings: Partial<Settings>
+  settings: Partial<Settings>,
 ): Promise<Settings> {
   logger.log(`Updating settings.`, settings)
   const appData = await getAppData()
@@ -57,7 +57,7 @@ export async function updateSettings(
   })
 
   const accountsToRemove = currentAccounts.filter(
-    (account) => !appData.settings?.accounts.find((a) => a.id === account.id)
+    (account) => !appData.settings?.accounts.find((a) => a.id === account.id),
   )
 
   accountsToRemove.forEach(async (account) => {
@@ -100,7 +100,7 @@ export async function updateAccount(account: Account) {
 export async function removeAccount(accountId: string) {
   const settings = await getSettings()
   const removalAccount = settings.accounts?.find(
-    (account) => account.id === accountId
+    (account) => account.id === accountId,
   )
   if (!removalAccount) {
     throw new Error(`Account with ID ${accountId} not found.`)
@@ -120,7 +120,7 @@ export async function updateAccountProfiles(): Promise<void> {
       } catch (error) {
         logger.error(
           `Failed to update profile for account ${account.id}:`,
-          error
+          error,
         )
       }
     }

@@ -1,6 +1,6 @@
 import Logger from '@/app/api-helpers/logger'
+import { getSettings, updateSettings } from '@/app/api/services/SettingsService'
 import { NextResponse } from 'next/server'
-import { getSettings, updateSettings } from '../services/SettingsService'
 
 const logger = new Logger('SettingsRoute')
 
@@ -13,7 +13,7 @@ export async function GET() {
     logger.error('Failed to fetch settings', error)
     return NextResponse.json(
       { error: 'Failed to fetch settings' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
@@ -36,7 +36,7 @@ export async function PUT(request: Request) {
     logger.error('Failed to update settings', error)
     return NextResponse.json(
       { error: 'Failed to update settings' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

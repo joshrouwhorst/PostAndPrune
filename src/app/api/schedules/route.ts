@@ -26,7 +26,7 @@ export const GET = withSocialLogoutAndErrorHandlingForRequest(
           logger.error('Schedule not found for ID:', scheduleId)
           return NextResponse.json(
             { error: 'Schedule not found' },
-            { status: 404 }
+            { status: 404 },
           )
         }
         return NextResponse.json(schedule)
@@ -36,10 +36,10 @@ export const GET = withSocialLogoutAndErrorHandlingForRequest(
       logger.error('Failed to fetch schedules', error)
       return NextResponse.json(
         { error: 'Failed to fetch schedules' },
-        { status: 500 }
+        { status: 500 },
       )
     }
-  }
+  },
 )
 
 export const POST = withSocialLogoutAndErrorHandlingForRequest(
@@ -52,10 +52,10 @@ export const POST = withSocialLogoutAndErrorHandlingForRequest(
       logger.error('Failed to create schedule', error)
       return NextResponse.json(
         { error: 'Failed to create schedule' },
-        { status: 500 }
+        { status: 500 },
       )
     }
-  }
+  },
 )
 
 export const PUT = withSocialLogoutAndErrorHandlingForRequest(
@@ -69,10 +69,10 @@ export const PUT = withSocialLogoutAndErrorHandlingForRequest(
       logger.error('Failed to update schedule', error)
       return NextResponse.json(
         { error: 'Failed to update schedule' },
-        { status: 500 }
+        { status: 500 },
       )
     }
-  }
+  },
 )
 
 export const DELETE = withSocialLogoutAndErrorHandlingForRequest(
@@ -85,7 +85,7 @@ export const DELETE = withSocialLogoutAndErrorHandlingForRequest(
         logger.error('Schedule ID is required')
         return NextResponse.json(
           { error: 'Schedule ID is required' },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
@@ -95,8 +95,8 @@ export const DELETE = withSocialLogoutAndErrorHandlingForRequest(
       logger.error('Failed to delete schedule', error)
       return NextResponse.json(
         { error: 'Failed to delete schedule' },
-        { status: 500 }
+        { status: 500 },
       )
     }
-  }
+  },
 )

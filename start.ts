@@ -88,7 +88,7 @@ async function signalStop() {
       'http://localhost:3000/api/util?action=shutdown',
       {
         method: 'POST',
-      }
+      },
     )
 
     if (response.ok) {
@@ -180,7 +180,7 @@ async function runMigrations(app: AppInfo) {
       // Handle both default export and named exports
       if (!migration) {
         console.warn(
-          `⚠️ Migration ${migrationFile} does not export a valid module`
+          `⚠️ Migration ${migrationFile} does not export a valid module`,
         )
         continue
       }
@@ -193,7 +193,7 @@ async function runMigrations(app: AppInfo) {
         await saveAppInfo(app)
       } else {
         console.warn(
-          `⚠️ Migration ${migrationFile} does not export an 'up' function`
+          `⚠️ Migration ${migrationFile} does not export an 'up' function`,
         )
       }
     } catch (error: unknown) {

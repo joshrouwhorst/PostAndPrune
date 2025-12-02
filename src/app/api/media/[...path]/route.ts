@@ -1,15 +1,12 @@
 import { getPaths } from '@/config/main'
-import fs from 'fs'
 import { NextResponse } from 'next/server'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 import Logger from '../../../api-helpers/logger'
 
 const logger = new Logger('MediaRoute')
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
+export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url)
     logger.log('Request URL:', requestUrl.toString())

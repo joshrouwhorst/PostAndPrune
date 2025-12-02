@@ -64,7 +64,7 @@ export default function PostMediaCarousel({ media }: PostMediaCarouselProps) {
           variant="icon"
           onClick={() =>
             setImageIndex(
-              (prev) => (prev - 1 + (media.length || 0)) % (media.length || 1)
+              (prev) => (prev - 1 + (media.length || 0)) % (media.length || 1),
             )
           }
           className="absolute left-2 top-1/2 transform -translate-y-1/2 border border-primary"

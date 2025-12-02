@@ -11,7 +11,7 @@ import DraftProvider from '@/providers/DraftsProvider'
 
 export default function SchedulesPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(
-    null
+    null,
   )
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState<Partial<Schedule>>({})

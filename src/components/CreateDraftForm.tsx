@@ -12,7 +12,6 @@ import {
 import { DEFAULT_GROUP } from '@/config/frontend'
 import { useDrafts } from '@/hooks/useDrafts'
 import type { CreateDraftInput, DraftMedia } from '@/types/drafts'
-import { Buffer } from 'buffer'
 import { ExternalLink, X } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -48,8 +47,8 @@ export function CreateDraftForm({
           draft.meta.images.length > 0
             ? draft.meta.images
             : draft.meta.video
-            ? [draft.meta.video]
-            : []
+              ? [draft.meta.video]
+              : [],
         )
         setGroup(draft.group || '')
       }
@@ -66,9 +65,9 @@ export function CreateDraftForm({
     setFilesToUpload((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const convertFileToBuffer = async (file: File): Promise<Buffer> => {
+  const convertFileToBuffer = async (file: File): Promise<ArrayBuffer> => {
     const arrayBuffer = await file.arrayBuffer()
-    return Buffer.from(arrayBuffer)
+    return arrayBuffer
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,14 +84,14 @@ export function CreateDraftForm({
           kind: 'image' as const,
           filename: file.name,
           mime: file.type,
-          data,
+          data: new Uint8Array(data),
         })
       } else if (file.type.startsWith('video/')) {
         video = {
           kind: 'video' as const,
           filename: file.name,
           mime: file.type,
-          data,
+          data: new Uint8Array(data),
         }
         break // Only one video allowed
       }

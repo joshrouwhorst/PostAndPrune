@@ -23,7 +23,7 @@ class CacheService {
   set<T = unknown>(
     key: string,
     value: unknown,
-    expiration?: number
+    expiration?: number,
   ): T | undefined {
     this.cache[key] = value
 

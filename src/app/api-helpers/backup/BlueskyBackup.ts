@@ -10,7 +10,7 @@ import type { Account } from '@/types/accounts'
 import type { FeedViewPost, PostData } from '@/types/bsky'
 import type { AppBskyEmbedImages, AppBskyEmbedVideo } from '@atproto/api'
 import type * as AppBskyFeedPost from '@atproto/api/src/client/types/app/bsky/feed/post'
-import path from 'path'
+import path from 'node:path'
 import { transformFeedViewPostToPostData } from '../../../transformers/transformFeedViewPostToPostData'
 import { saveBlobToFile } from '../auth/BlueskyAuth'
 import { Governor } from '../governor'
@@ -23,7 +23,7 @@ export async function openBackup(accountId: string): Promise<PostData[]> {
   try {
     const feedViewPosts = await openBackupAsFeedViewPosts(accountId)
     return feedViewPosts.map((p) =>
-      transformFeedViewPostToPostData(p, accountId)
+      transformFeedViewPostToPostData(p, accountId),
     )
   } catch (error) {
     logger.error(`Error transforming backup for ${accountId}:`, error)
@@ -32,7 +32,7 @@ export async function openBackup(accountId: string): Promise<PostData[]> {
 }
 
 export async function openBackupAsFeedViewPosts(
-  accountId: string
+  accountId: string,
 ): Promise<FeedViewPost[]> {
   // Ensure backup directory exists
   const { backupPath } = await getPaths()
@@ -47,7 +47,7 @@ export async function openBackupAsFeedViewPosts(
 
 export async function saveBackup(
   accountId: string,
-  data: FeedViewPost[]
+  data: FeedViewPost[],
 ): Promise<void> {
   const { backupPath } = await getPaths()
   const backupFile = path.join(backupPath, accountId, `posts.json`)
@@ -64,7 +64,7 @@ export async function saveBackup(
 
 export async function backupMediaFiles(
   account: Account,
-  feedViewPost: FeedViewPost
+  feedViewPost: FeedViewPost,
 ): Promise<number> {
   const post = feedViewPost.post
   const record = post.record as AppBskyFeedPost.Record
@@ -93,7 +93,7 @@ export async function backupMediaFiles(
         account.id,
         getMediaName(post, mediaType, i),
         year,
-        mediaType
+        mediaType,
       )
 
       try {
@@ -109,7 +109,7 @@ export async function backupMediaFiles(
       } catch (err) {
         logger.error(
           `Error downloading image ${imageUrl} to ${mediaLocation}:`,
-          err
+          err,
         )
       }
     }
@@ -134,7 +134,7 @@ export async function backupMediaFiles(
     embed.video,
     `video-${post.cid}`,
     embedView.cid,
-    post.author.did
+    post.author.did,
   )
 
   if (write) return 1
@@ -160,7 +160,7 @@ export function getMediaLocation(
   accountId: string,
   mediaName: string,
   year: string,
-  mediaType: string
+  mediaType: string,
 ) {
   const { backupPath } = getPaths()
   return path.join(backupPath, accountId, 'media', year, mediaType, mediaName)
@@ -170,7 +170,7 @@ export function getMediaApiUrl(
   accountId: string,
   mediaName: string,
   year: string,
-  mediaType: string
+  mediaType: string,
 ) {
   return path.join('/api/media', accountId, 'media', year, mediaType, mediaName)
 }
@@ -178,7 +178,7 @@ export function getMediaApiUrl(
 export function getMediaName(
   post: FeedViewPost['post'],
   extension: string,
-  index: number
+  index: number,
 ): string {
   // Extract file extension from the URL after @ symbol, or default to .jpg
   const mediaExtension = extension ? `.${extension}` : '.jpg'
@@ -213,7 +213,7 @@ export async function saveBlobData(
   },
   filename: string,
   cid: string,
-  userDid: string
+  userDid: string,
 ): Promise<boolean> {
   try {
     // Get the media extension from mime type
@@ -231,7 +231,7 @@ export async function saveBlobData(
       account.id,
       fullFilename,
       year,
-      extension
+      extension,
     )
 
     // If the file already exists, skip saving

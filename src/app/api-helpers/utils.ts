@@ -1,9 +1,9 @@
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 
 export async function saveJsonToFile(
   data: string | object,
-  filePath: string
+  filePath: string,
 ): Promise<void> {
   // Ensure the directory exists
   const dir = path.dirname(filePath)
@@ -62,7 +62,7 @@ export async function downloadFile({
           throw new Error(
             `Failed to download file: ${response.status} ${
               response.statusText
-            }. Response: ${await response.text()}`
+            }. Response: ${await response.text()}`,
           )
         }
       }

@@ -7,13 +7,13 @@ export interface Account {
   credentials?: Credentials
   isActive: boolean
   createdAt: string
-  profile: Profile
+  profile: Profile | null
 }
 
 export interface Profile {
-  handle: string
   displayName?: string
-  avatar?: string | null
+  handle?: string
+  avatarUrl?: string
 }
 
 export interface Credentials {

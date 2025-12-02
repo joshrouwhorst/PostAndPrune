@@ -29,7 +29,8 @@ export async function up(service: MigrationService) {
         },
       },
       isActive: true,
-    }
+      // biome-ignore lint/suspicious/noExplicitAny: Needs to be generic
+    } as any
     appData.settings.accounts = [defaultAccount]
     delete appData.settings.bskyIdentifier
     delete appData.settings.bskyPassword
@@ -44,7 +45,7 @@ export async function up(service: MigrationService) {
   // Migrate existing backup files to new multi-account format
   const { backupPath } = getPaths()
   const backupFileExists = await checkIfExists(
-    `${backupPath}/bluesky-posts.json`
+    `${backupPath}/bluesky-posts.json`,
   )
   if (backupFileExists) {
     const account = appData.settings?.accounts?.[0]
@@ -52,11 +53,11 @@ export async function up(service: MigrationService) {
     await createDirectory(`${backupPath}/${account.id}`)
     await moveFileOrDirectory(
       `${backupPath}/bluesky-posts.json`,
-      `${backupPath}/${account.id}/posts.json`
+      `${backupPath}/${account.id}/posts.json`,
     )
     await moveFileOrDirectory(
       `${backupPath}/media`,
-      `${backupPath}/${account.id}/media`
+      `${backupPath}/${account.id}/media`,
     )
   }
 
@@ -103,11 +104,11 @@ export async function down(service: MigrationService) {
     if (accountBackupDirExists) {
       await moveFileOrDirectory(
         `${accountBackupPath}/posts.json`,
-        `${backupPath}/bluesky-posts.json`
+        `${backupPath}/bluesky-posts.json`,
       )
       await moveFileOrDirectory(
         `${accountBackupPath}/media`,
-        `${backupPath}/media`
+        `${backupPath}/media`,
       )
       await deleteFileOrDirectory(accountBackupPath)
       console.log('Backup files reverted to single-account format.')

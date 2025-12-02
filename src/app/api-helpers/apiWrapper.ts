@@ -52,7 +52,7 @@ export function withSocialLogout(handler: () => Promise<NextResponse>) {
  * })
  */
 export function withSocialLogoutForRequest(
-  handler: (request: NextRequest) => Promise<NextResponse>
+  handler: (request: NextRequest) => Promise<NextResponse>,
 ) {
   return async (request: NextRequest) => {
     try {
@@ -80,7 +80,7 @@ export function withSocialLogoutForRequest(
  * Use this if you want consistent error handling across all routes
  */
 export function withSocialLogoutAndErrorHandling(
-  handler: () => Promise<NextResponse>
+  handler: () => Promise<NextResponse>,
 ) {
   return async () => {
     try {
@@ -98,7 +98,7 @@ export function withSocialLogoutAndErrorHandling(
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
         },
-        { status: 500 }
+        { status: 500 },
       )
     } finally {
       try {
@@ -116,7 +116,7 @@ export function withSocialLogoutAndErrorHandling(
  * Use this if you want consistent error handling across all routes
  */
 export function withSocialLogoutAndErrorHandlingForRequest(
-  handler: (request: NextRequest) => Promise<NextResponse>
+  handler: (request: NextRequest) => Promise<NextResponse>,
 ) {
   return async (request: NextRequest) => {
     try {
@@ -134,7 +134,7 @@ export function withSocialLogoutAndErrorHandlingForRequest(
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
         },
-        { status: 500 }
+        { status: 500 },
       )
     } finally {
       try {
@@ -148,11 +148,11 @@ export function withSocialLogoutAndErrorHandlingForRequest(
 }
 
 export function withSocialLogoutWithId(
-  handler: (id: string, request: NextRequest) => Promise<Response>
+  handler: (id: string, request: NextRequest) => Promise<Response>,
 ) {
   return async (
     request: NextRequest,
-    { params }: { params: Promise<{ id?: string }> }
+    { params }: { params: Promise<{ id?: string }> },
   ) => {
     const { id } = await params
 
@@ -161,7 +161,7 @@ export function withSocialLogoutWithId(
         logger.error('ID parameter is missing')
         return NextResponse.json(
           { error: 'ID parameter is required' },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
@@ -179,7 +179,7 @@ export function withSocialLogoutWithId(
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
         },
-        { status: 500 }
+        { status: 500 },
       )
     } finally {
       try {

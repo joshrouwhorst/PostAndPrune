@@ -17,7 +17,7 @@ import {
 
 export function transformFeedViewPostToPostData(
   feedPost: FeedViewPost,
-  accountId: string
+  accountId: string,
 ): PostData {
   const post = feedPost.post
 
@@ -31,7 +31,7 @@ export function transformFeedViewPostToPostData(
               ? null
               : transformPostView(
                   feedPost.reply.root as FeedViewPost['post'],
-                  accountId
+                  accountId,
                 ),
           parent:
             feedPost.reply.parent.$type === 'app.bsky.feed.defs#notFoundPost' ||
@@ -39,7 +39,7 @@ export function transformFeedViewPostToPostData(
               ? null
               : transformPostView(
                   feedPost.reply.parent as FeedViewPost['post'],
-                  accountId
+                  accountId,
                 ),
         } as ReplyData)
       : undefined,
@@ -80,7 +80,7 @@ export function transformFeedViewPostToPostData(
 
 function transformPostView(
   post: FeedViewPost['post'],
-  accountId: string
+  accountId: string,
 ): PostView {
   if (!post) {
     throw new Error('Post is undefined')
@@ -122,7 +122,7 @@ function transformPostView(
                   accountId,
                   getMediaName(post, getMediaType(image.fullsize), index),
                   post.indexedAt.split('T')[0].split('-')[0],
-                  getMediaType(image.fullsize)
+                  getMediaType(image.fullsize),
                 ),
                 thumb: image.thumb,
                 alt: image.alt,
@@ -130,34 +130,34 @@ function transformPostView(
               })) || [],
           } as Embed)
         : post.embed && post.embed.$type === 'app.bsky.embed.external#view'
-        ? {
-            $type: post.embed.$type,
-            external: {
-              uri: (post.embed as any).external?.uri,
-              title: (post.embed as any).external?.title,
-              description: (post.embed as any).external?.description,
-            },
-            images:
-              (post.embed as EmbedView).images?.map((image, index) => ({
-                fullsize: image.fullsize,
-                local: getMediaApiUrl(
-                  accountId,
-                  getMediaName(post, getMediaType(image.fullsize), index),
-                  post.indexedAt.split('T')[0].split('-')[0],
-                  getMediaType(image.fullsize)
-                ),
-                thumb: image.thumb,
-                alt: image.alt,
-                aspectRatio: image.aspectRatio || { width: 1, height: 1 },
-              })) || [],
-            record: (post.embed as any).record || undefined,
-          }
-        : post.embed && post.embed.$type === 'app.bsky.embed.record#view'
-        ? {
-            $type: post.embed.$type,
-            record: (post.embed as any).record || undefined,
-          }
-        : undefined,
+          ? {
+              $type: post.embed.$type,
+              external: {
+                uri: (post.embed as any).external?.uri,
+                title: (post.embed as any).external?.title,
+                description: (post.embed as any).external?.description,
+              },
+              images:
+                (post.embed as EmbedView).images?.map((image, index) => ({
+                  fullsize: image.fullsize,
+                  local: getMediaApiUrl(
+                    accountId,
+                    getMediaName(post, getMediaType(image.fullsize), index),
+                    post.indexedAt.split('T')[0].split('-')[0],
+                    getMediaType(image.fullsize),
+                  ),
+                  thumb: image.thumb,
+                  alt: image.alt,
+                  aspectRatio: image.aspectRatio || { width: 1, height: 1 },
+                })) || [],
+              record: (post.embed as any).record || undefined,
+            }
+          : post.embed && post.embed.$type === 'app.bsky.embed.record#view'
+            ? {
+                $type: post.embed.$type,
+                record: (post.embed as any).record || undefined,
+              }
+            : undefined,
     bookmarkCount: post?.bookmarkCount || 0,
     quoteCount: post?.quoteCount || 0,
     viewer: {

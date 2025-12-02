@@ -12,7 +12,7 @@ const logger = new Logger('AuthManager')
 export async function getPosts(
   account: Account,
   config?: BlueskyAuth.PostFilters,
-  useCache: boolean = false
+  useCache: boolean = false,
 ): Promise<FeedViewPost[]> {
   switch (account.platform) {
     case 'bluesky':
@@ -27,7 +27,7 @@ export async function getPosts(
  */
 export async function deletePostsWithUris(
   account: Account,
-  postUris: string[]
+  postUris: string[],
 ): Promise<void> {
   switch (account.platform) {
     case 'bluesky':
@@ -42,7 +42,7 @@ export async function deletePostsWithUris(
  */
 export async function deletePosts(
   account: Account,
-  config: BlueskyAuth.PostFilters
+  config: BlueskyAuth.PostFilters,
 ): Promise<void> {
   switch (account.platform) {
     case 'bluesky':
@@ -57,10 +57,10 @@ export async function deletePosts(
  */
 export async function addPost(
   post: DraftPost,
-  account: Account
+  account: Account,
 ): Promise<void> {
   logger.log(
-    `Publishing post to ${account.platform} for account: ${account.name}`
+    `Publishing post to ${account.platform} for account: ${account.name}`,
   )
 
   switch (account.platform) {
@@ -78,7 +78,7 @@ export async function saveBlobToFile(
   account: Account,
   cid: string,
   filePath: string,
-  did: string
+  did: string,
 ): Promise<boolean> {
   switch (account.platform) {
     case 'bluesky':
@@ -93,7 +93,7 @@ export async function saveBlobToFile(
  */
 export async function logout(account: Account): Promise<void> {
   logger.log(
-    `Logging out from ${account.platform} for account: ${account.name}`
+    `Logging out from ${account.platform} for account: ${account.name}`,
   )
 
   switch (account.platform) {
@@ -104,12 +104,17 @@ export async function logout(account: Account): Promise<void> {
   }
 }
 
+export async function logoutAllAccounts(): Promise<void> {
+  // Be sure to add logoutAll functions for other platforms here as needed
+  await BlueskyAuth.logoutAll()
+}
+
 /**
  * Test account connection and credentials
  */
 export async function testConnection(account: Account): Promise<boolean> {
   logger.log(
-    `Testing connection for ${account.platform} account: ${account.name}`
+    `Testing connection for ${account.platform} account: ${account.name}`,
   )
 
   try {
@@ -124,7 +129,7 @@ export async function testConnection(account: Account): Promise<boolean> {
   } catch (error) {
     logger.error(
       `Connection test failed for ${account.platform} account ${account.name}:`,
-      error
+      error,
     )
     return false
   }

@@ -30,14 +30,14 @@ export { migration_20251020_init, migration_20251122_multiaccount }
 
 // Helper function to get migration by filename
 export function getMigrationByFilename(
-  filename: string
+  filename: string,
 ): MigrationModule | undefined {
   const migrationMap: Record<string, MigrationModule> = FILES.reduce(
     (map, file) => {
       map[file.filename] = file.module
       return map
     },
-    {} as Record<string, MigrationModule>
+    {} as Record<string, MigrationModule>,
   )
   return migrationMap[filename]
 }

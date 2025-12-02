@@ -5,7 +5,7 @@ import { transformPostDataToDisplayData } from './transformPostDataToDisplayData
 
 export function transformFeedViewPostToDisplayData(
   feedPost: FeedViewPost,
-  accountId: string
+  accountId: string,
 ): PostDisplayData {
   const postData = transformFeedViewPostToPostData(feedPost, accountId)
   return transformPostDataToDisplayData(postData)

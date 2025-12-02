@@ -4,14 +4,14 @@ import type { PostDisplayData } from '@/components/Post'
 import { getPaths, PREVENT_POSTING } from '@/config/main'
 import { wait } from '@/helpers/utils'
 import { transformFeedViewPostToDisplayData } from '@/transformers/transformFeedViewPostToDisplayData'
-import type { Account, Credentials } from '@/types/accounts'
+import type { Account, Credentials, Profile } from '@/types/accounts'
 import type { FeedViewPost } from '@/types/bsky'
 import type { DraftPost } from '@/types/drafts'
 import { AtpAgent, RichText } from '@atproto/api'
 import type * as AppBskyActorGetProfile from '@atproto/api/src/client/types/app/bsky/actor/getProfile'
 import ExifReader from 'exifreader'
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import { Governor } from '../governor'
 import Logger from '../logger'
 
@@ -72,14 +72,14 @@ export async function logoutAll() {
 
 async function createAgent(
   account: Account,
-  credentials: Credentials
+  credentials: Credentials,
 ): Promise<AtpAgent> {
   const BSKY_IDENTIFIER = credentials.identifier
   const BSKY_PASSWORD = credentials.password
 
   if (!BSKY_IDENTIFIER || !BSKY_PASSWORD) {
     logger.error(
-      `Cannot find Bluesky credentials in account ${account.name}(${account.id}).`
+      `Cannot find Bluesky credentials in account ${account.name}(${account.id}).`,
     )
     throw new Error('Bluesky credentials are not set in account')
   }
@@ -108,7 +108,7 @@ async function createAgent(
         throw new Error(
           `Failed to login after ${maxLoginAttempts} attempts: ${
             loginError instanceof Error ? loginError.message : 'Unknown error'
-          }`
+          }`,
         )
       }
 
@@ -120,9 +120,7 @@ async function createAgent(
   return agent
 }
 
-export async function getAccountInfo(
-  account: Account
-): Promise<{ handle: string; displayName?: string; avatar: string | null }> {
+export async function getAccountInfo(account: Account): Promise<Profile> {
   const agent = await getAgent(account)
   await governor.wait()
   const response = (await agent.getProfile({
@@ -135,27 +133,27 @@ export async function getAccountInfo(
   return {
     handle: response.data.handle,
     displayName: response.data.displayName,
-    avatar: response.data.avatar || null,
+    avatarUrl: response.data.avatar || undefined,
   }
 }
 
 export async function getPosts(
   account: Account,
   config?: PostFilters,
-  useCache: boolean = false
+  useCache: boolean = false,
 ): Promise<PostDisplayData[]> {
   try {
     const posts = await getPostsAsFeedViewPosts(account, config, useCache)
     setCache(cacheId(account.id), posts)
     return posts.map((post) =>
-      transformFeedViewPostToDisplayData(post, account.id)
+      transformFeedViewPostToDisplayData(post, account.id),
     )
   } catch (error) {
     logger.error('Error fetching posts:', error)
     throw new Error(
       `Failed to fetch posts: ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`
+      }`,
     )
   }
 }
@@ -163,7 +161,7 @@ export async function getPosts(
 export async function getPostsAsFeedViewPosts(
   account: Account,
   config?: PostFilters,
-  useCache: boolean = false
+  useCache: boolean = false,
 ): Promise<FeedViewPost[]> {
   const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
 
@@ -227,7 +225,7 @@ export async function getPostsAsFeedViewPosts(
     throw new Error(
       `Failed to fetch posts: ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`
+      }`,
     )
   }
 
@@ -236,7 +234,7 @@ export async function getPostsAsFeedViewPosts(
 
 export async function deletePostsWithUris(
   account: Account,
-  postUris: string[]
+  postUris: string[],
 ): Promise<void> {
   const agent = await getAgent(account)
   await governor.wait()
@@ -246,7 +244,7 @@ export async function deletePostsWithUris(
       logger.log(`Deleting post: ${postUri}`)
       if (PREVENT_POSTING) {
         logger.log(
-          'PREVENT_POSTING is enabled, skipping actual deletion of post.'
+          'PREVENT_POSTING is enabled, skipping actual deletion of post.',
         )
         continue
       }
@@ -266,14 +264,14 @@ export async function deletePostsWithUris(
     throw new Error(
       `Failed to delete post: ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`
+      }`,
     )
   }
 }
 
 export async function deletePosts(
   account: Account,
-  config: PostFilters
+  config: PostFilters,
 ): Promise<void> {
   const agent = await getAgent(account)
 
@@ -361,12 +359,12 @@ export async function deletePosts(
       const postUri = postsToDelete[i]
       try {
         console.log(
-          `Deleting post ${i + 1}/${postsToDelete.length}: ${postUri}`
+          `Deleting post ${i + 1}/${postsToDelete.length}: ${postUri}`,
         )
         await governor.wait(200)
         if (PREVENT_POSTING) {
           logger.log(
-            'PREVENT_POSTING is enabled, skipping actual deletion of post.'
+            'PREVENT_POSTING is enabled, skipping actual deletion of post.',
           )
           continue
         }
@@ -402,7 +400,7 @@ export async function deletePosts(
     throw new Error(
       `Failed to delete posts: ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`
+      }`,
     )
   }
 }
@@ -421,7 +419,7 @@ function removeOriginalPosts(posts: FeedViewPost[]): FeedViewPost[] {
 
 export async function addPost(
   post: DraftPost,
-  account: Account
+  account: Account,
 ): Promise<void> {
   const agent = await getAgent(account)
   await governor.wait()
@@ -523,7 +521,7 @@ export async function addPost(
 function getAltFromExif(tags: ExifReader.Tags): string | null {
   const getTagValue = (
     tags: ExifReader.Tags,
-    tagName: string
+    tagName: string,
   ): string | null => {
     if (tags[tagName]?.value) {
       if (typeof tags[tagName]?.value === 'string') {
@@ -570,7 +568,7 @@ export async function saveBlobToFile(
   account: Account,
   cid: string,
   filePath: string,
-  did: string
+  did: string,
 ): Promise<boolean> {
   try {
     const agent = await getAgent(account)

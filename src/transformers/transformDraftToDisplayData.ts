@@ -5,7 +5,7 @@ import type { PostDisplayData } from '@/types/types'
 export function transformDraftToDisplayData(
   draftPost: DraftPost,
   displayName?: string | null,
-  handle?: string | null
+  handle?: string | null,
 ): PostDisplayData {
   return {
     text: draftPost.meta.text || '',

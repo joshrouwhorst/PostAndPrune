@@ -29,13 +29,13 @@ export const GET = withSocialLogoutForRequest(async (request) => {
       posts = await getDraftPostsInGroup(group)
     } else if (scheduleId) {
       const schedule = (await getSchedules()).find(
-        (s) => s.id === scheduleId
+        (s) => s.id === scheduleId,
       ) as Schedule
 
       if (!schedule) {
         return NextResponse.json(
           { error: 'Schedule not found' },
-          { status: 404 }
+          { status: 404 },
         )
       }
 
@@ -62,7 +62,7 @@ export const GET = withSocialLogoutForRequest(async (request) => {
       {
         error: 'Failed to fetch posts',
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
@@ -73,7 +73,7 @@ export const POST = withSocialLogoutForRequest(async (request) => {
     if (Array.isArray(input)) {
       // Handle multiple CreateDraftInputs
       const newPosts = await Promise.all(
-        input.map((item: CreateDraftInput) => createDraftPost(item))
+        input.map((item: CreateDraftInput) => createDraftPost(item)),
       )
       return NextResponse.json(newPosts, { status: 201 })
     } else {
@@ -85,7 +85,7 @@ export const POST = withSocialLogoutForRequest(async (request) => {
     logger.error('Failed to create post(s)', error)
     return NextResponse.json(
       { error: 'Failed to create post(s)' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
@@ -96,7 +96,7 @@ export const PUT = withSocialLogoutWithId(async (id, request) => {
     if (!id) {
       return NextResponse.json(
         { error: 'Post ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -106,7 +106,7 @@ export const PUT = withSocialLogoutWithId(async (id, request) => {
     logger.error('Failed to update post', error)
     return NextResponse.json(
       { error: 'Failed to update post' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })

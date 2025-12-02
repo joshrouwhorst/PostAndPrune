@@ -23,7 +23,7 @@ interface SettingsContextType {
 
 // Create the context
 const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined
+  undefined,
 )
 
 interface SettingsProviderProps {

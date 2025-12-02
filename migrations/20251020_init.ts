@@ -1,18 +1,17 @@
-async function up(service) {
+import type { MigrationService } from '@/app/api/services/MigrationService'
+
+async function up(service: MigrationService) {
   // Example migration: Add a new field to app metadata
   if (service.isPreviousVersionLessThan('0.1.1')) {
     console.log('Migrating to 0.1.1: <description>')
   }
 }
 
-async function down(service) {
+async function down(service: MigrationService) {
   // Example rollback: Remove the new field from app metadata
   if (service.isPreviousVersionGreaterThan('0.1.0')) {
     console.log('Reverting migration to 0.1.0: <description>')
   }
 }
 
-export {
-  down, up
-}
-
+export { down, up }

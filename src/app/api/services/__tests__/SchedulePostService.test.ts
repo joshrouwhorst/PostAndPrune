@@ -234,7 +234,7 @@ describe('publishNextPost', () => {
       { meta: { directoryName: 'post1', priority: 1 }, group: 'group1' },
     ])
     ;(draftPostService.publishDraftPost as jest.Mock).mockResolvedValue(
-      undefined
+      undefined,
     )
     await publishNextPost('schedule-1')
     expect(appDataHelpers.saveAppData).toHaveBeenCalled()
@@ -282,7 +282,7 @@ describe('publishNextPost', () => {
       { meta: { directoryName: 'post5' }, group: 'group1' },
     ])
     ;(draftPostService.publishDraftPost as jest.Mock).mockResolvedValue(
-      undefined
+      undefined,
     )
     await publishNextPost('schedule-1')
     expect(appDataHelpers.saveAppData).toHaveBeenCalled()

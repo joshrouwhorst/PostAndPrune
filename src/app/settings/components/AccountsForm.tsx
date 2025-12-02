@@ -114,7 +114,7 @@ export interface AccountFormData {
 
 export function getAccountFromAccountFormData(
   data: AccountFormData,
-  existingAccount?: Account
+  existingAccount?: Account,
 ): Account {
   const account: Account = {
     id: existingAccount ? existingAccount.id : `new-${crypto.randomUUID()}`, // Temporary ID for new accounts, will be replaced when saved
@@ -124,6 +124,7 @@ export function getAccountFromAccountFormData(
     createdAt: existingAccount
       ? existingAccount.createdAt
       : new Date().toISOString(),
+    profile: existingAccount?.profile || null,
   }
 
   account.credentials = {
@@ -167,14 +168,14 @@ function AddEditAccountForm({
 
   const updateField = (
     field: keyof AccountFormData,
-    value: string | boolean
+    value: string | boolean,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   const updateCredentials = (
     field: keyof AccountFormData['credentials'],
-    value: string
+    value: string,
   ) => {
     setFormData((prev) => ({
       ...prev,

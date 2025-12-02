@@ -1,6 +1,6 @@
 'use client'
-import { Select } from '../ui/forms'
 import { useEffect, useState } from 'react'
+import { Select } from '../ui/forms'
 
 interface TimezoneSelectProps {
   value?: string
@@ -55,9 +55,8 @@ const TimezoneSelect: React.FC<TimezoneSelectProps> = ({
   const getTimezoneOffset = (timezone: string): string => {
     try {
       const now = new Date()
-      const offset = -now.getTimezoneOffset() / 60
       const tzDate = new Date(
-        now.toLocaleString('en-US', { timeZone: timezone })
+        now.toLocaleString('en-US', { timeZone: timezone }),
       )
       const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }))
       const tzOffset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60)

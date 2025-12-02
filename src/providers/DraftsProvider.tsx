@@ -85,7 +85,7 @@ export default function DraftProvider({ children }: DraftProviderProps) {
       }
       setFilteredDrafts(filtered)
     },
-    [filters]
+    [filters],
   )
 
   const refresh = useCallback(async () => {
@@ -145,7 +145,7 @@ export default function DraftProvider({ children }: DraftProviderProps) {
             )
           }
           return true
-        })
+        }),
       )
     },
     removeFilter: async (prop) => {
@@ -163,7 +163,7 @@ export default function DraftProvider({ children }: DraftProviderProps) {
             )
           }
           return true
-        })
+        }),
       )
     },
     clearFilters: async () => {

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { reorderGroupPosts } from '../../services/DraftPostService'
 
 // Reorder posts in a group
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params
@@ -13,14 +13,14 @@ export async function PUT(
     if (!id) {
       return NextResponse.json(
         { error: 'Group ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
     if (!body.draftPostIds || !Array.isArray(body.draftPostIds)) {
       return NextResponse.json(
         { error: 'draftPostIds array is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -29,10 +29,10 @@ export async function PUT(
     return NextResponse.json({
       message: 'Post priorities updated successfully',
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to update post priorities' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

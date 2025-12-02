@@ -18,7 +18,7 @@ export default function SettingsForm() {
   const router = useRouter()
   const [formState, setFormState] = useState<Partial<Settings>>({})
   const [originalSettings, setOriginalSettings] = useState<Partial<Settings>>(
-    {}
+    {},
   )
   const [toastMessage, setToastMessage] = useState<ToastProps | null>(null)
 
@@ -77,7 +77,7 @@ export default function SettingsForm() {
     // Check for unsaved changes
     if (hasUnsavedChanges()) {
       const confirmDiscard = window.confirm(
-        'You have unsaved changes. Are you sure you want to discard them?'
+        'You have unsaved changes. Are you sure you want to discard them?',
       )
 
       if (!confirmDiscard) {
@@ -100,7 +100,7 @@ export default function SettingsForm() {
 
   const handleAddAccount = async (
     accountData: AccountFormData,
-    accountId?: string
+    accountId?: string,
   ) => {
     const existingAccount = accountId
       ? formState.accounts?.find((acc) => acc.id === accountId)
@@ -108,7 +108,7 @@ export default function SettingsForm() {
 
     const account = getAccountFromAccountFormData(
       accountData,
-      existingAccount || undefined
+      existingAccount || undefined,
     )
 
     setToastMessage({
@@ -136,7 +136,7 @@ export default function SettingsForm() {
     if (existingAccount) {
       // Update existing account
       const updatedAccounts = formState.accounts?.map((acc) =>
-        acc.id === accountId ? { ...acc, ...account } : acc
+        acc.id === accountId ? { ...acc, ...account } : acc,
       )
       setFormState((prev) => ({
         ...prev,
@@ -156,7 +156,7 @@ export default function SettingsForm() {
 
   const handleDeleteAccount = (accountId: string) => {
     const updatedAccounts = formState.accounts?.filter(
-      (acc) => acc.id !== accountId
+      (acc) => acc.id !== accountId,
     )
     setFormState((prev) => ({
       ...prev,

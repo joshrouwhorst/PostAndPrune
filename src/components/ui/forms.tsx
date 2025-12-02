@@ -68,7 +68,6 @@ const getSizeClasses = (variant: Variant, size: string) => {
   switch (size) {
     case 'tall':
       return 'px-3 py-4 text-sm'
-    case 'md':
     default:
       return 'px-4 py-2 text-sm'
   }
@@ -92,7 +91,7 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       className={`${baseButtonClasses} ${getColorClasses(
         variant,
-        color
+        color,
       )} ${getSizeClasses(variant, size)} ${className}`}
       {...props}
     >
@@ -126,7 +125,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({
       target={target}
       className={`${baseLinkClasses} ${getColorClasses(
         variant,
-        color
+        color,
       )} ${getSizeClasses(variant, size)} ${className}`}
       {...props}
     >

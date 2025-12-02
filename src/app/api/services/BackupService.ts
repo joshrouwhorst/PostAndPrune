@@ -48,7 +48,7 @@ export async function getBackups(): Promise<BackupData | null> {
       backups.push(backup)
     } else {
       logger.error(
-        `Failed to get backup for account: ${account.name} (${account.id})`
+        `Failed to get backup for account: ${account.name} (${account.id})`,
       )
     }
   }
@@ -64,7 +64,7 @@ export async function getBackups(): Promise<BackupData | null> {
 }
 
 export async function getBackup(
-  account: Account
+  account: Account,
 ): Promise<AccountBackup | null> {
   const cache = getCache<AccountBackup | null>(cacheId(account.id))
   if (cache) return cache as AccountBackup
@@ -77,7 +77,7 @@ export async function getBackup(
   if (account.platform === 'bluesky') {
     const backupPosts = await openBskyBackup(account.id)
     posts = backupPosts.map((p) =>
-      transformFeedViewPostToDisplayData(p, account.id)
+      transformFeedViewPostToDisplayData(p, account.id),
     )
   }
 
@@ -128,8 +128,8 @@ export async function runBackup(accountIds: string[] = []): Promise<void> {
   ) {
     logger.log(
       `Last backup at ${formatDate(
-        lastBackup
-      )} was less than ${MINIMUM_MINUTES_BETWEEN_BACKUPS} minutes ago. Skipping backup.`
+        lastBackup,
+      )} was less than ${MINIMUM_MINUTES_BETWEEN_BACKUPS} minutes ago. Skipping backup.`,
     )
     logger.closing('Backup Process')
     return
@@ -167,7 +167,7 @@ export async function runBackup(accountIds: string[] = []): Promise<void> {
 
       // Update existing posts with new ones, avoiding duplicates
       const existingPostsMap = new Map(
-        backupPosts.map((post) => [post.post.cid, post])
+        backupPosts.map((post) => [post.post.cid, post]),
       )
 
       let newMediaCount = 0
@@ -175,12 +175,12 @@ export async function runBackup(accountIds: string[] = []): Promise<void> {
         try {
           newMediaCount += await backupBskyMediaFiles(
             account,
-            post as FeedViewPost
+            post as FeedViewPost,
           )
         } catch (error) {
           logger.error(
             `Error backing up media files for post: ${post.post.cid}`,
-            error
+            error,
           )
         }
       })
@@ -197,7 +197,7 @@ export async function runBackup(accountIds: string[] = []): Promise<void> {
         await saveBskyBackup(account.id, combinedPosts)
         totalPosts += combinedPosts.length
         logger.log(
-          `Backup saved for account: ${account.name} (${account.id}). Total posts in backup: ${combinedPosts.length}`
+          `Backup saved for account: ${account.name} (${account.id}). Total posts in backup: ${combinedPosts.length}`,
         )
       } catch (error) {
         logger.error('Error saving backup:', error)
@@ -216,7 +216,7 @@ export async function runBackup(accountIds: string[] = []): Promise<void> {
   }
 
   logger.log(
-    `Backup complete. There are now ${totalPosts} total posts in backup.`
+    `Backup complete. There are now ${totalPosts} total posts in backup.`,
   )
 
   logger.closing('Backup Process')
@@ -237,7 +237,7 @@ export async function prunePosts(): Promise<void> {
 
   if (!settings.pruneAfterMonths || settings.pruneAfterMonths < 1) {
     logger.log(
-      'Pruning is disabled (pruneAfterMonths is not set or less than 1). Exiting prune process.'
+      'Pruning is disabled (pruneAfterMonths is not set or less than 1). Exiting prune process.',
     )
     logger.closing('Prune Process')
     return
@@ -264,7 +264,7 @@ export async function prunePosts(): Promise<void> {
 
       const currentPosts = await getBskyPosts(account)
       logger.log(
-        `There are now ${currentPosts.length} total posts in on ${account.name} account.`
+        `There are now ${currentPosts.length} total posts in on ${account.name} account.`,
       )
     }
   }

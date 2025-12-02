@@ -38,7 +38,7 @@ export function getNextDatetime(
   tz: string = 'UTC',
   daysOfWeek?: string[] | string | null,
   daysOfMonth?: number[] | number | null,
-  count: number = 1
+  count: number = 1,
 ): Date[] {
   if (amount <= 0) throw new Error('amount must be > 0')
   if (count <= 0) throw new Error('count must be > 0')
@@ -69,14 +69,14 @@ export function getNextDatetime(
       unit,
       timesArray,
       daysOfWeekArray,
-      daysOfMonthArray
+      daysOfMonthArray,
     )
 
     // Find the next valid candidate after currentStart
     const validCandidates = candidates
       .filter(
         (candidate) =>
-          candidate.isAfter(currentStart) || candidate.isSame(currentStart)
+          candidate.isAfter(currentStart) || candidate.isSame(currentStart),
       )
       .sort((a, b) => a.valueOf() - b.valueOf())
 
@@ -106,7 +106,7 @@ function normalizeToArray<T>(input: T | T[] | null | undefined): T[] {
 
 // Helper function to normalize day names to numbers
 function normalizeDaysOfWeek(
-  input: string[] | string | null | undefined
+  input: string[] | string | null | undefined,
 ): number[] {
   if (input === null || input === undefined) return []
 
@@ -119,7 +119,7 @@ function normalizeDaysOfWeek(
         return dayNum
       }
       throw new Error(
-        `Invalid day name: ${day}. Expected: Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday`
+        `Invalid day name: ${day}. Expected: Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday`,
       )
     }
 
@@ -134,7 +134,7 @@ function generateCandidates(
   unit: Unit,
   timesArray: string[],
   daysOfWeekArray: number[],
-  daysOfMonthArray: number[]
+  daysOfMonthArray: number[],
 ): dayjs.Dayjs[] {
   const candidates: dayjs.Dayjs[] = []
 

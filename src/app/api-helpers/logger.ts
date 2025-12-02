@@ -1,8 +1,7 @@
-import fs from 'fs'
-import path from 'path'
 import { LOGS_PATH } from '@/config/main'
 import { formatDate } from '@/helpers/utils'
-import { ensureDir } from './utils'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const SHOW_OBJECTS_IN_LOGS = false // Set to false to disable logging objects
 const DELETE_LOGS_OLDER_THAN_DAYS = 30
@@ -51,7 +50,7 @@ export default class Logger {
       if (file.startsWith('backup-log-') && file.endsWith('.txt')) {
         const datePart = file.slice(11, 21) // Extract date part
         const fileDate = new Date(datePart)
-        if (!isNaN(fileDate.getTime())) {
+        if (!Number.isNaN(fileDate.getTime())) {
           const ageInDays = (now - fileDate.getTime()) / (1000 * 60 * 60 * 24)
           if (ageInDays > DELETE_LOGS_OLDER_THAN_DAYS) {
             const filePath = path.join(LOGS_PATH, file)
@@ -95,6 +94,7 @@ export default class Logger {
     this.blanks(2)
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: Needs to be generic
   log(message: string, object?: any) {
     this.appendLine(message)
     if (object && SHOW_OBJECTS_IN_LOGS) {
@@ -102,12 +102,13 @@ export default class Logger {
     }
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: Needs to be generic
   error(message: string, error?: any) {
     this.appendLine(`ERROR: ${message}`)
     if (error) {
       // Always show error objects in logs
       this.appendLine(
-        `ERROR DETAILS: ${JSON.stringify(error, getCircularReplacer(), 2)}`
+        `ERROR DETAILS: ${JSON.stringify(error, getCircularReplacer(), 2)}`,
       )
     }
   }

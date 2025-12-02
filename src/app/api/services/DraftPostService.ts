@@ -55,14 +55,14 @@ async function init() {
 }
 
 export async function getDraftPostsInGroup(
-  group: string
+  group: string,
 ): Promise<DraftPost[]> {
   const posts = await getDraftPosts()
   return posts.filter((p) => p.group === group)
 }
 
 export async function getDraftPostsInSchedule(
-  schedule: Schedule
+  schedule: Schedule,
 ): Promise<DraftPost[]> {
   if (!schedule.group) {
     return []
@@ -126,7 +126,7 @@ export async function getDraftPosts(): Promise<DraftPost[]> {
           (d) =>
             !d.name.startsWith('@eaDir') &&
             !d.name.startsWith('.') &&
-            !d.name.startsWith('$')
+            !d.name.startsWith('$'),
         )
         .map((d) => d.name)
 
@@ -150,7 +150,7 @@ export async function getDraftPosts(): Promise<DraftPost[]> {
 export async function getDraftPost(
   id: string,
   group?: string,
-  noCache: boolean = false
+  noCache: boolean = false,
 ): Promise<DraftPost | null> {
   // If there's no group check all the groups for the post
   if (!group) {
@@ -211,7 +211,7 @@ export async function getDraftPost(
 }
 
 export async function createDraftPost(
-  input: CreateDraftInput
+  input: CreateDraftInput,
 ): Promise<DraftPost> {
   const text = input.text || ''
   const inputImages = input.images ?? []
@@ -287,7 +287,7 @@ export async function createDraftPost(
   // Return post with text loaded from file
   const postText = await readPostText(postDir)
   logger.log(
-    `Created draft post ${directoryName} in ${input.group || 'no group'}.`
+    `Created draft post ${directoryName} in ${input.group || 'no group'}.`,
   )
 
   const post = {
@@ -312,7 +312,7 @@ export async function deleteDraftPost(id: string): Promise<void> {
   if (_cache) {
     _cache = setCache(
       CACHE_ID,
-      _cache.filter((p) => p.fullPath !== post.fullPath)
+      _cache.filter((p) => p.fullPath !== post.fullPath),
     )
   }
 }
@@ -355,7 +355,7 @@ export async function duplicateDraftPost(id: string): Promise<DraftPost> {
         } catch (err) {
           logger.error(
             `Failed to copy directory ${srcPath} to ${destPath}`,
-            err
+            err,
           )
           throw err
         }
@@ -396,7 +396,7 @@ export async function duplicateDraftPost(id: string): Promise<DraftPost> {
 
 export async function updateDraftPost(
   directoryName: string,
-  input: CreateDraftInput
+  input: CreateDraftInput,
 ): Promise<DraftPost | null> {
   logger.log(`Updating draft post ${directoryName}.`)
   const posts = await getDraftPosts()
@@ -439,7 +439,7 @@ export async function updateDraftPost(
 
   if (post.group !== input.group) {
     logger.log(
-      `Moving draft post ${directoryName} from group ${post.group} to ${input.group}.`
+      `Moving draft post ${directoryName} from group ${post.group} to ${input.group}.`,
     )
     await movePostToGroup(post, input.group || DEFAULT_GROUP)
   }
@@ -478,7 +478,7 @@ export async function getGroups(): Promise<string[]> {
 
 export async function readMediaFile(
   post: DraftPost,
-  filePath: string
+  filePath: string,
 ): Promise<Buffer> {
   const p = path.join(post.fullPath, post.meta.mediaDir, filePath)
   return fs.readFile(p)
@@ -526,14 +526,14 @@ async function sendToAccount(post: DraftPost, account: Account): Promise<void> {
       break
     default:
       throw new Error(
-        `Account ${account.name} is using unsupported platform ${account.platform}.`
+        `Account ${account.name} is using unsupported platform ${account.platform}.`,
       )
   }
 }
 
 export async function reorderGroupPosts(
   group: string,
-  newOrder: string[]
+  newOrder: string[],
 ): Promise<void> {
   logger.log(`Reordering posts for group ${group}.`, { newOrder })
   const postsToReorder = await getDraftPostsInGroup(group)
@@ -588,7 +588,7 @@ async function readMedia(postDir: string): Promise<{
   await ensureDir(mediaPath)
   const mediaRaw = await listFiles(mediaPath)
   const images: DraftMedia[] = []
-  let video: DraftMedia | undefined = undefined
+  let video: DraftMedia | undefined
 
   if (!mediaRaw || mediaRaw.length === 0) {
     return { images: undefined, video: undefined }
@@ -663,7 +663,7 @@ async function readMedia(postDir: string): Promise<{
 }
 
 async function getImageDimensions(
-  filePath: string
+  filePath: string,
 ): Promise<{ width: number; height: number; size: number }> {
   try {
     const metadata = await Jimp.read(filePath)
@@ -680,7 +680,7 @@ async function getImageDimensions(
 }
 
 async function getVideoDimensions(
-  filePath: string
+  filePath: string,
 ): Promise<{ width: number; height: number; size: number }> {
   try {
     const stats = await fs.stat(filePath)
@@ -774,7 +774,7 @@ export function generateDirPath({
 async function addImage(
   image: DraftMediaFileInput,
   index: number,
-  mediaDir: string
+  mediaDir: string,
 ) {
   const img = image
   const ext = extFromFilename(img.filename) || '.jpg'
@@ -809,7 +809,7 @@ function extFromFilename(filename: string) {
 
 async function updatePostDirectoryName(
   oldPath: string,
-  newPath: string
+  newPath: string,
 ): Promise<void> {
   logger.log(`Updating directory name for post ${oldPath} to ${newPath}.`)
   await moveFileOrDirectory(oldPath, newPath)
@@ -817,10 +817,10 @@ async function updatePostDirectoryName(
 
 async function movePostToGroup(
   post: DraftPost,
-  newGroup: string
+  newGroup: string,
 ): Promise<DraftPost> {
   logger.log(
-    `Moving draft post ${post.meta.directoryName} to group ${newGroup}.`
+    `Moving draft post ${post.meta.directoryName} to group ${newGroup}.`,
   )
   const groupDir = path.join(draftPostsPath, newGroup)
   await ensureDir(groupDir)
@@ -841,7 +841,7 @@ async function movePostToPublished(post: DraftPost): Promise<DraftPost> {
   const newDir = path.join(
     publishedPostsPath,
     ...(post.group ? [post.group] : []),
-    path.basename(post.fullPath)
+    path.basename(post.fullPath),
   )
 
   await ensureDir(newDir)

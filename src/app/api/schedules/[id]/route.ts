@@ -17,7 +17,7 @@ export const GET = withSocialLogoutWithId(async (id) => {
       logger.error('Schedule ID is required')
       return NextResponse.json(
         { error: 'Schedule ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -26,7 +26,7 @@ export const GET = withSocialLogoutWithId(async (id) => {
       logger.error('No scheduled lookups found')
       return NextResponse.json(
         { error: 'No scheduled lookups found' },
-        { status: 404 }
+        { status: 404 },
       )
     }
     return NextResponse.json(lookups)
@@ -34,7 +34,7 @@ export const GET = withSocialLogoutWithId(async (id) => {
     logger.error('Failed to fetch scheduled lookups', error)
     return NextResponse.json(
       { error: 'Failed to fetch scheduled lookups' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
@@ -47,14 +47,14 @@ export const PUT = withSocialLogoutWithId(async (id, request) => {
       logger.error('Schedule ID is required for updating next posts')
       return NextResponse.json(
         { error: 'Schedule ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
     if (!Array.isArray(newOrder)) {
       logger.error('newOrder must be an array')
       return NextResponse.json(
         { error: 'newOrder must be an array' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -67,7 +67,7 @@ export const PUT = withSocialLogoutWithId(async (id, request) => {
     logger.error('Failed to update schedule order', error)
     return NextResponse.json(
       { error: 'Failed to update schedule order' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
@@ -79,7 +79,7 @@ export const POST = withSocialLogoutWithId(async (id) => {
       logger.error('Schedule ID is required')
       return NextResponse.json(
         { error: 'Schedule ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -92,7 +92,7 @@ export const POST = withSocialLogoutWithId(async (id) => {
     logger.error('Failed to trigger schedule', error)
     return NextResponse.json(
       { error: 'Failed to trigger schedule' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })

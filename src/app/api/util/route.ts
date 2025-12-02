@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { ensureCronIsRunning } from '../services/CronService'
 import Logger from '../../api-helpers/logger'
+import { ensureCronIsRunning } from '../services/CronService'
 
 const logger = new Logger('UtilRoute')
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       logger.error('Invalid action for POST /api/util:', action)
       return NextResponse.json(
         { error: 'Invalid action. To initialize, set action=init' },
-        { status: 400 }
+        { status: 400 },
       )
   }
 }

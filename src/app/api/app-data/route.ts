@@ -16,7 +16,7 @@ export async function GET() {
     logger.error('Failed to fetch app data', error)
     return NextResponse.json(
       { error: 'Failed to fetch app data' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

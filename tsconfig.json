@@ -13,13 +13,17 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "allowImportingTsExtensions": false,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "multiformats/cid": ["./src/types/multiformats.d.ts"]
     }
   },
   "include": [
@@ -27,7 +31,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "start.ts"
+    "start.ts",
+    "src/types/multiformats.d.ts"
   ],
   "exclude": ["node_modules"]
 }

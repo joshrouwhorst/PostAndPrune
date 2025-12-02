@@ -17,7 +17,7 @@ export const POST = withSocialLogoutAndErrorHandlingForRequest(
       logger.error('Post ID is required')
       return NextResponse.json(
         { error: 'Post ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -25,7 +25,7 @@ export const POST = withSocialLogoutAndErrorHandlingForRequest(
       logger.error('Account IDs are required for publishing')
       return NextResponse.json(
         { error: 'Account IDs are required for publishing' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -33,14 +33,14 @@ export const POST = withSocialLogoutAndErrorHandlingForRequest(
       await publishDraftPost({ id, accountIds })
       return NextResponse.json(
         { message: 'Post sent to all supported platforms' },
-        { status: 200 }
+        { status: 200 },
       )
     } catch (error) {
       logger.error('Failed to publish post', error)
       return NextResponse.json(
         { error: 'Failed to publish post' },
-        { status: 500 }
+        { status: 500 },
       )
     }
-  }
+  },
 )

@@ -15,19 +15,22 @@ export function useGroups(): GroupHookContext {
     return data
   }, [])
 
-  const reorderGroupPosts = useCallback(async (groupId: string, draftPostIds: string[]) => {
-    const response = await fetch(`/api/groups/${groupId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ draftPostIds }),
-    })
-    if (!response.ok) {
-      throw new Error('Failed to reorder posts in group')
-    }
-    return response.json()
-  }, [])
+  const reorderGroupPosts = useCallback(
+    async (groupId: string, draftPostIds: string[]) => {
+      const response = await fetch(`/api/groups/${groupId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ draftPostIds }),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to reorder posts in group')
+      }
+      return response.json()
+    },
+    [],
+  )
 
   return { fetchGroups, reorderGroupPosts }
 }

@@ -27,7 +27,7 @@ describe('getNextDatetime', () => {
       1,
       'weeks',
       ['08:30'],
-      'America/New_York'
+      'America/New_York',
     )
     expect(results[0].toISOString()).toBe('2025-09-30T12:30:00.000Z')
   })
@@ -69,7 +69,7 @@ describe('getNextDatetime', () => {
       ['08:30'],
       'UTC',
       [],
-      [23]
+      [23],
     )
     expect(results[0].toISOString()).toBe('2025-09-23T08:30:00.000Z')
   })
@@ -83,7 +83,7 @@ describe('getNextDatetime', () => {
       ['08:30'],
       'UTC',
       [],
-      [23]
+      [23],
     )
     expect(results[0].toISOString()).toBe('2025-10-23T08:30:00.000Z')
   })
@@ -97,7 +97,7 @@ describe('getNextDatetime', () => {
       ['08:30'],
       'UTC',
       [],
-      [28]
+      [28],
     )
     expect(results[0].toISOString()).toBe('2025-09-28T08:30:00.000Z')
   })
@@ -111,7 +111,7 @@ describe('getNextDatetime', () => {
       ['08:30'],
       'UTC',
       [],
-      [5]
+      [5],
     )
     expect(results[0].toISOString()).toBe('2025-10-05T08:30:00.000Z')
   })
@@ -126,7 +126,7 @@ describe('getNextDatetime', () => {
       'UTC',
       [],
       [],
-      3
+      3,
     )
     expect(results.length).toBe(3)
     expect(results[0].toISOString()).toBe('2025-09-24T08:30:00.000Z')
@@ -144,7 +144,7 @@ describe('getNextDatetime', () => {
       'UTC',
       [],
       [],
-      2
+      2,
     )
     expect(results.length).toBe(2)
     const result1 = results[0].toISOString()
@@ -163,7 +163,7 @@ describe('getNextDatetime', () => {
       'UTC',
       [],
       [],
-      1
+      1,
     )
 
     console.log('nextResults', nextResults[0].toISOString())
@@ -173,14 +173,14 @@ describe('getNextDatetime', () => {
   it('should throw an error for invalid start date', () => {
     const start = new Date('invalid-date')
     expect(() => getNextDatetime(start, 1, 'days')).toThrow(
-      'invalid start date'
+      'invalid start date',
     )
   })
 
   it('should throw an error for non-positive amount', () => {
     const start = new Date('2025-09-23T10:00:00Z')
     expect(() => getNextDatetime(start, 0, 'days')).toThrow(
-      'amount must be > 0'
+      'amount must be > 0',
     )
   })
 
@@ -195,31 +195,40 @@ describe('getNextDatetime', () => {
         'UTC',
         undefined,
         undefined,
-        0
-      )
+        0,
+      ),
     ).toThrow('count must be > 0')
   })
 
   it('should throw an error if no occurrence found within max iterations', () => {
     const start = new Date('2025-09-23T10:00:00Z')
     expect(() =>
-      getNextDatetime(start, 1, 'months', ['08:30'], 'UTC', ['Monday'], [32], 1)
+      getNextDatetime(
+        start,
+        1,
+        'months',
+        ['08:30'],
+        'UTC',
+        ['Monday'],
+        [32],
+        1,
+      ),
     ).toThrow('no occurrence found')
   })
 
   it('should throw an error for invalid day name in daysOfWeek', () => {
     const start = new Date('2025-09-23T10:00:00Z')
     expect(() =>
-      getNextDatetime(start, 1, 'weeks', ['08:30'], 'UTC', ['Funday'], [], 1)
+      getNextDatetime(start, 1, 'weeks', ['08:30'], 'UTC', ['Funday'], [], 1),
     ).toThrow(
-      'Invalid day name: Funday. Expected: Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday'
+      'Invalid day name: Funday. Expected: Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday',
     )
   })
 
   it('should throw an error for invalid day type in daysOfWeek', () => {
     const start = new Date('2025-09-23T10:00:00Z')
     expect(() =>
-      getNextDatetime(start, 1, 'weeks', ['08:30'], 'UTC', [123 as any], [], 1)
+      getNextDatetime(start, 1, 'weeks', ['08:30'], 'UTC', [123 as any], [], 1),
     ).toThrow('Invalid day type: number. Expected string.')
   })
 })

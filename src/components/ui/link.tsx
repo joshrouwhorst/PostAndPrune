@@ -1,37 +1,36 @@
-import NextLink from "next/link";
+import NextLink from 'next/link'
 
 export default function Link({
   href,
-  variant = "primary",
+  variant = 'primary',
   children,
   className,
   ...props
 }: React.ComponentProps<typeof NextLink> & {
-  variant?: "primary" | "success" | "danger" | "warning";
-  children: React.ReactNode;
+  variant?: 'primary' | 'success' | 'danger' | 'warning'
+  children: React.ReactNode
 }) {
-  let variantClasses = "";
+  let variantClasses = ''
   switch (variant) {
-    case "success":
-      variantClasses = "text-green-400";
-      break;
-    case "danger":
-      variantClasses = "text-red-400";
-      break;
-    case "warning":
-      variantClasses = "text-yellow-400";
-      break;
-    case "primary":
+    case 'success':
+      variantClasses = 'text-green-400'
+      break
+    case 'danger':
+      variantClasses = 'text-red-400'
+      break
+    case 'warning':
+      variantClasses = 'text-yellow-400'
+      break
     default:
-      variantClasses = "text-blue-400";
-      break;
+      variantClasses = 'text-blue-400'
+      break
   }
-  const baseClasses = `${variantClasses} hover:text-inherit underline hover:no-underline`;
+  const baseClasses = `${variantClasses} hover:text-inherit underline hover:no-underline`
 
-  className = className ? `${baseClasses} ${className}` : baseClasses;
+  className = className ? `${baseClasses} ${className}` : baseClasses
   return (
     <NextLink href={href} className={className} {...props}>
       {children}
     </NextLink>
-  );
+  )
 }

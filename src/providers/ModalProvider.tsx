@@ -162,7 +162,7 @@ export function useAlertModal() {
   const alertModal = (
     title: string,
     message: string,
-    buttonText: string = 'OK'
+    buttonText: string = 'OK',
   ): string => {
     let modalId: string
 

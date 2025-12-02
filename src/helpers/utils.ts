@@ -17,7 +17,7 @@ export function randomBetween(a: number, b: number): number {
 
 export function getDateTimeObject(
   date: Date | string,
-  timeZone: string = 'UTC'
+  timeZone: string = 'UTC',
 ): {
   _object: Date
   date: string
@@ -56,7 +56,7 @@ export function formatDate(date: Date | string, timeZone?: string): string {
 
 export function formatFullDateTime(
   date: Date | string,
-  timeZone?: string
+  timeZone?: string,
 ): string {
   const obj = getDateTimeObject(date, timeZone)
   if (!obj) return ''

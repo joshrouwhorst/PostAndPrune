@@ -1,8 +1,8 @@
 import { decrypt, encrypt } from '@/app/api/services/FileService'
 import { APP_DATA_FILE } from '@/config/main'
 import type { AppData } from '@/types/types'
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 import Logger from './logger'
 import { ensureDir } from './utils'
 

@@ -216,7 +216,7 @@ describe('DraftPostService', () => {
       }
 
       await expect(createDraftPost(inputWithTooManyImages)).rejects.toThrow(
-        'max 4 images allowed'
+        'max 4 images allowed',
       )
     })
 
@@ -231,7 +231,7 @@ describe('DraftPostService', () => {
       }
 
       await expect(createDraftPost(inputWithInvalidVideo)).rejects.toThrow(
-        "video kind must be 'video'"
+        "video kind must be 'video'",
       )
     })
   })
@@ -310,14 +310,14 @@ describe('DraftPostService', () => {
         async (_src: string, _dest: string) => {
           copyCalled = true
           return Promise.resolve()
-        }
+        },
       )
       writeFile.mockResolvedValue(undefined)
 
       readText.mockImplementation(async (path: string) => {
         if (
           path.includes('post1/meta.json') ||
-          path.includes(dupedPath.fullPath + '/meta.json')
+          path.includes(`${dupedPath.fullPath}/meta.json`)
         ) {
           return JSON.stringify(mockDraftPost.meta)
         }
@@ -368,7 +368,7 @@ describe('DraftPostService', () => {
           return true
         }
         // After copy, the new meta.json should exist
-        if (path === dupedPath.fullPath + '/meta.json' && copyCalled) {
+        if (path === `${dupedPath.fullPath}/meta.json` && copyCalled) {
           return true
         }
         return false
@@ -473,7 +473,7 @@ describe('DraftPostService', () => {
       }
 
       await expect(updateDraftPost('nonexistent', updateData)).rejects.toThrow(
-        'Cannot find post to update'
+        'Cannot find post to update',
       )
     })
   })
@@ -530,7 +530,7 @@ describe('DraftPostService', () => {
       addPost.mockResolvedValue({ success: true })
 
       await expect(
-        publishDraftPost({ id: 'post1', accounts: [mockAccount] })
+        publishDraftPost({ id: 'post1', accounts: [mockAccount] }),
       ).resolves.not.toThrow()
       expect(addPost).toHaveBeenCalled()
     })
@@ -558,7 +558,7 @@ describe('DraftPostService', () => {
       })
 
       await expect(
-        publishDraftPost({ id: 'nonexistent', accounts: [mockAccount] })
+        publishDraftPost({ id: 'nonexistent', accounts: [mockAccount] }),
       ).rejects.toThrow('Post not found')
     })
 
@@ -622,9 +622,9 @@ describe('DraftPostService', () => {
               createdAt: new Date().toISOString(),
             } as unknown as Account,
           ],
-        })
+        }),
       ).rejects.toThrow(
-        'Account Unsupported Account is using unsupported platform unsupported-platform.'
+        'Account Unsupported Account is using unsupported platform unsupported-platform.',
       )
     })
   })

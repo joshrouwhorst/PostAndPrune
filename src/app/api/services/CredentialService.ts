@@ -55,12 +55,12 @@ export class CredentialService {
   }
 
   private async saveCredentials(
-    credentials: CredentialsStorage
+    credentials: CredentialsStorage,
   ): Promise<void> {
     try {
       await writeEncryptedFile(
         CREDENTIALS_FILE,
-        JSON.stringify(credentials, null, 2)
+        JSON.stringify(credentials, null, 2),
       )
       this.credentialsCache = credentials
       logger.log('Credentials saved successfully')
@@ -80,13 +80,13 @@ export class CredentialService {
 
       if (!credentials) {
         logger.log(
-          `No credentials found for account ${account.id} (${account.name})`
+          `No credentials found for account ${account.id} (${account.name})`,
         )
         return null
       }
 
       logger.log(
-        `Retrieved credentials for account ${account.id} (${account.name})`
+        `Retrieved credentials for account ${account.id} (${account.name})`,
       )
       return credentials
     } catch (error) {
@@ -100,7 +100,7 @@ export class CredentialService {
    */
   public async setCredentials(
     account: Account,
-    credentials: Credentials
+    credentials: Credentials,
   ): Promise<void> {
     try {
       const storage = await this.loadCredentials()
@@ -124,12 +124,12 @@ export class CredentialService {
 
       await this.saveCredentials(storage)
       logger.log(
-        `Credentials removed for account ${account.id} (${account.name})`
+        `Credentials removed for account ${account.id} (${account.name})`,
       )
     } catch (error) {
       logger.error(
         `Failed to remove credentials for account ${account.id}`,
-        error
+        error,
       )
       throw error
     }
@@ -145,7 +145,7 @@ export class CredentialService {
     } catch (error) {
       logger.error(
         `Failed to check credentials for account ${account.id}`,
-        error
+        error,
       )
       return false
     }

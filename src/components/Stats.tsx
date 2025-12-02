@@ -35,7 +35,7 @@ export default function Stats() {
   const accountsBackedUp = backupData?.backups.length
   const postsBackedUp = backupData?.backups.reduce(
     (sum, acc) => sum + acc.totalPosts,
-    0
+    0,
   )
 
   if (backupLoading) {

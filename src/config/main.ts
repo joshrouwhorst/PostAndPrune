@@ -1,5 +1,5 @@
-import { dirname, resolve } from 'path'
-import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const SRC_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
@@ -28,7 +28,7 @@ const APP_DATA_ENCRYPTION_KEY =
   process.env.APP_DATA_ENCRYPTION_KEY || 'd3fAul7_5ecret_k3y_32bytes!' // Must be 32 bytes
 export const ENCRYPTION_KEY = APP_DATA_ENCRYPTION_KEY?.padEnd(32, '0').slice(
   0,
-  32
+  32,
 ) // Must be 32 bytes
 
 export const DEFAULT_PRUNE_MONTHS = process.env.DEFAULT_PRUNE_MONTHS || 3

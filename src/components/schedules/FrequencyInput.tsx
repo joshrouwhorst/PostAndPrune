@@ -1,12 +1,12 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: see code */
 /** biome-ignore-all lint/style/noNonNullAssertion: see code */
-import { useState, useEffect, useCallback } from 'react'
-import type { ScheduleFrequency } from '@/types/scheduler'
-import { Input, Label, Select } from '../ui/forms'
-import TimezoneSelect from './TimezoneSelect'
-import DaySelector from '../ui/DaySelector'
-import TimeSelector from '../ui/TimeSelector'
 import { useSettingsContext } from '@/providers/SettingsProvider'
+import type { ScheduleFrequency } from '@/types/scheduler'
+import { useCallback, useEffect, useState } from 'react'
+import DaySelector from '../ui/DaySelector'
+import { Input, Label, Select } from '../ui/forms'
+import TimeSelector from '../ui/TimeSelector'
+import TimezoneSelect from './TimezoneSelect'
 
 const WEEKDAYS = [
   'Sunday',
@@ -45,15 +45,15 @@ export default function FrequencyInput({
   const [daysOfWeek, setDaysOfWeek] = useState<string[]>(
     value?.daysOfWeek !== undefined
       ? value.daysOfWeek
-      : DEFAULT_FREQUENCY.daysOfWeek!
+      : DEFAULT_FREQUENCY.daysOfWeek!,
   )
   const [daysOfMonth, setDaysOfMonth] = useState<number[]>(
     value?.daysOfMonth !== undefined
       ? value.daysOfMonth
-      : DEFAULT_FREQUENCY.daysOfMonth!
+      : DEFAULT_FREQUENCY.daysOfMonth!,
   )
   const [timesOfDay, setTimesOfDay] = useState(
-    value?.timesOfDay || DEFAULT_FREQUENCY.timesOfDay
+    value?.timesOfDay || DEFAULT_FREQUENCY.timesOfDay,
   )
   const [timeZone, setTimeZone] = useState<string | undefined>(value?.timeZone)
 
@@ -63,7 +63,7 @@ export default function FrequencyInput({
       newDaysOfWeek = daysOfWeek,
       newDaysOfMonth = daysOfMonth,
       newTimesOfDay = timesOfDay,
-      newTimeZone = timeZone
+      newTimeZone = timeZone,
     ): ScheduleFrequency => {
       const frequency: ScheduleFrequency = {
         interval: newInterval,
@@ -83,7 +83,7 @@ export default function FrequencyInput({
 
       return frequency
     },
-    [interval, daysOfWeek, daysOfMonth, timesOfDay, timeZone]
+    [interval, daysOfWeek, daysOfMonth, timesOfDay, timeZone],
   )
 
   // Effect to notify parent of default values on mount ONLY
@@ -103,12 +103,12 @@ export default function FrequencyInput({
       setDaysOfWeek(
         value.daysOfWeek !== undefined
           ? value.daysOfWeek
-          : DEFAULT_FREQUENCY.daysOfWeek!
+          : DEFAULT_FREQUENCY.daysOfWeek!,
       )
       setDaysOfMonth(
         value.daysOfMonth !== undefined
           ? value.daysOfMonth
-          : DEFAULT_FREQUENCY.daysOfMonth!
+          : DEFAULT_FREQUENCY.daysOfMonth!,
       )
       setTimesOfDay(value.timesOfDay || DEFAULT_FREQUENCY.timesOfDay)
       setTimeZone(value.timeZone || DEFAULT_FREQUENCY.timeZone)
@@ -117,7 +117,7 @@ export default function FrequencyInput({
 
   const handleIntervalChange = (
     field: 'every' | 'unit',
-    newValue: string | number
+    newValue: string | number,
   ) => {
     const newInterval = { ...interval, [field]: newValue }
     setInterval(newInterval)
@@ -127,14 +127,14 @@ export default function FrequencyInput({
       daysOfWeek,
       daysOfMonth,
       timesOfDay,
-      timeZone
+      timeZone,
     )
     onChange(frequency)
   }
 
   const handleDayChange = (
     type: 'week' | 'month',
-    values: string[] | number[]
+    values: string[] | number[],
   ) => {
     if (type === 'week') {
       setDaysOfWeek(values as string[])
@@ -143,7 +143,7 @@ export default function FrequencyInput({
         values as string[],
         daysOfMonth,
         timesOfDay,
-        timeZone
+        timeZone,
       )
       onChange(frequency)
     } else {
@@ -153,7 +153,7 @@ export default function FrequencyInput({
         daysOfWeek,
         values as number[],
         timesOfDay,
-        timeZone
+        timeZone,
       )
       onChange(frequency)
     }
@@ -166,7 +166,7 @@ export default function FrequencyInput({
       daysOfWeek,
       daysOfMonth,
       newTimes,
-      timeZone
+      timeZone,
     )
     onChange(frequency)
   }
@@ -178,7 +178,7 @@ export default function FrequencyInput({
       daysOfWeek,
       daysOfMonth,
       timesOfDay,
-      newTimezone
+      newTimezone,
     )
     onChange(frequency)
   }
@@ -193,7 +193,7 @@ export default function FrequencyInput({
             min="1"
             value={interval.every}
             onChange={(e) =>
-              handleIntervalChange('every', parseInt(e.target.value) || 1)
+              handleIntervalChange('every', parseInt(e.target.value, 10) || 1)
             }
           />
         </div>
