@@ -32,7 +32,7 @@ export default function TimeSelector({
   maxItems,
 }: TimeSelectorProps) {
   const [times, setTimes] = useState<string[]>(() =>
-    Array.from(new Set(value.filter((t) => /^\d{2}:\d{2}$/.test(t))))
+    Array.from(new Set(value.filter((t) => /^\d{2}:\d{2}$/.test(t)))),
   )
   const [hour, setHour] = useState<number>(7)
   const [minute, setMinute] = useState<number>(30)
@@ -49,7 +49,7 @@ export default function TimeSelector({
   useEffect(() => {
     // keep internal in sync if prop changes
     const normalizedValue = Array.from(
-      new Set(value.filter((t) => /^\d{2}:\d{2}$/.test(t)))
+      new Set(value.filter((t) => /^\d{2}:\d{2}$/.test(t))),
     )
     setTimes((prev) => {
       // Only update if the values are actually different to prevent unnecessary re-renders

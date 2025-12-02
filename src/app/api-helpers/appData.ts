@@ -1,49 +1,27 @@
-import { APP_DATA_FILE, ENCRYPTION_KEY } from '@/config/main'
-import fs from 'fs'
-import path from 'path'
-
+import { decrypt, encrypt } from '@/app/api/services/FileService'
+import { APP_DATA_FILE } from '@/config/main'
 import type { AppData } from '@/types/types'
+import fs from 'node:fs'
+import path from 'node:path'
 import Logger from './logger'
-import crypto from 'crypto'
 import { ensureDir } from './utils'
-const logger = new Logger('AppData')
 
-const IV_LENGTH = 16
+const logger = new Logger('AppData')
 
 let _cache: AppData | null = null
 const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
 let _lastCacheTime = 0
 
-function encrypt(text: string): string {
-  const iv = crypto.randomBytes(IV_LENGTH)
-  const cipher = crypto.createCipheriv(
-    'aes-256-cbc',
-    Buffer.from(ENCRYPTION_KEY),
-    iv
-  )
-  let encrypted = cipher.update(text, 'utf8', 'base64')
-  encrypted += cipher.final('base64')
-  return iv.toString('base64') + ':' + encrypted
-}
-
-function decrypt(text: string): string {
-  const [ivBase64, encryptedData] = text.split(':')
-  const iv = Buffer.from(ivBase64, 'base64')
-  const decipher = crypto.createDecipheriv(
-    'aes-256-cbc',
-    Buffer.from(ENCRYPTION_KEY),
-    iv
-  )
-  let decrypted = decipher.update(encryptedData, 'base64', 'utf8')
-  decrypted += decipher.final('utf8')
-  return decrypted
-}
-
 export async function getAppData(): Promise<AppData> {
   if (_cache && Date.now() - _lastCacheTime < CACHE_DURATION_MS) return _cache
   await ensureDir(path.dirname(APP_DATA_FILE))
   if (!fs.existsSync(APP_DATA_FILE)) {
-    return { lastBackup: null, postsOnBsky: 0, totalPostsBackedUp: 0 }
+    return {
+      lastBackup: null,
+      lastPrune: null,
+      schedules: null,
+      settings: null,
+    }
   }
   const encrypted = await fs.promises.readFile(APP_DATA_FILE, 'utf-8')
   const data = decrypt(encrypted)
@@ -56,6 +34,13 @@ export async function getAppData(): Promise<AppData> {
 export async function saveAppData(data: AppData): Promise<void> {
   logger.log('Saving app data.')
   await ensureDir(path.dirname(APP_DATA_FILE))
+  if (data.settings?.accounts) {
+    // Don't save credentials to disk, remove them from the accounts in the app data before saving.
+    data.settings.accounts = data.settings.accounts.map((account) => ({
+      ...account,
+      credentials: undefined,
+    }))
+  }
   _cache = data
   _lastCacheTime = Date.now()
   const json = JSON.stringify(data)

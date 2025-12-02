@@ -1,16 +1,20 @@
+import { getAppData } from '@/app/api-helpers/appData'
+import { cron } from '@/app/api-helpers/cron'
 import Logger from '@/app/api-helpers/logger'
 import {
-  getSchedules,
-  updateSchedule,
-  publishNextPost,
   getNextTriggerTimes,
+  getSchedules,
+  publishNextPost,
+  updateSchedule,
 } from '../services/SchedulePostService'
-import { cron } from '@/app/api-helpers/cron'
-import { getAppData } from '@/app/api-helpers/appData'
-import { runBackup, prunePosts } from './BackupService'
+import { prunePosts, runBackup } from './BackupService'
+import { updateAccountProfiles } from './SettingsService'
 
 const CRON_MINUTES = 5
 const TASK_ID = `task-cron`
+
+const ACCOUNT_INFO_REFRESH_MINUTES = 60
+let lastAccountInfoRefresh: Date | null = null
 
 const logger = new Logger('CronService')
 init()
@@ -24,15 +28,15 @@ export async function ensureCronIsRunning() {
   if (!cron.hasTask(TASK_ID)) {
     logger.log(
       `Adding cron job to run at ${new Date(
-        Date.now() + CRON_MINUTES * 60 * 1000
-      ).toISOString()}`
+        Date.now() + CRON_MINUTES * 60 * 1000,
+      ).toISOString()}`,
     )
     cron.addTask(
       TASK_ID,
       () => {
         cronJob()
       },
-      CRON_MINUTES * 60 * 1000
+      CRON_MINUTES * 60 * 1000,
     )
   } else {
     logger.log('Cron job already running')
@@ -40,9 +44,22 @@ export async function ensureCronIsRunning() {
 }
 
 async function cronJob() {
-  await pruneIfNeeded()
-  await backupIfNeeded()
-  await postIfNeeded()
+  try {
+    await pruneIfNeeded()
+  } catch (error) {
+    logger.error('Error during pruneIfNeeded', error)
+  }
+  try {
+    await backupIfNeeded()
+  } catch (error) {
+    logger.error('Error during backupIfNeeded', error)
+  }
+  try {
+    await postIfNeeded()
+  } catch (error) {
+    logger.error('Error during postIfNeeded', error)
+  }
+
   if (cron.hasTask(TASK_ID)) cron.removeTask(TASK_ID)
 
   cron.addTask(
@@ -50,7 +67,7 @@ async function cronJob() {
     () => {
       cronJob()
     },
-    CRON_MINUTES * 60 * 1000
+    CRON_MINUTES * 60 * 1000,
   )
 }
 
@@ -74,12 +91,12 @@ export async function pruneIfNeeded() {
   }
 
   const nextPrune = new Date(
-    lastPrune.getTime() + settings.autoPruneFrequencyMinutes * 60 * 1000
+    lastPrune.getTime() + settings.autoPruneFrequencyMinutes * 60 * 1000,
   )
 
   if (nextPrune <= now) {
     logger.log(
-      `Last prune was on ${lastPrune.toISOString()}, running prune now.`
+      `Last prune was on ${lastPrune.toISOString()}, running prune now.`,
     )
 
     await prunePosts()
@@ -90,6 +107,7 @@ export async function pruneIfNeeded() {
 
 export async function backupIfNeeded() {
   const appData = await getAppData()
+
   const settings = appData.settings
   if (
     !settings?.autoBackupFrequencyMinutes ||
@@ -108,12 +126,12 @@ export async function backupIfNeeded() {
   }
 
   const nextBackup = new Date(
-    lastBackup.getTime() + settings.autoBackupFrequencyMinutes * 60 * 1000
+    lastBackup.getTime() + settings.autoBackupFrequencyMinutes * 60 * 1000,
   )
 
   if (nextBackup <= now) {
     logger.log(
-      `Last backup was on ${lastBackup.toISOString()}, running backup now.`
+      `Last backup was on ${lastBackup.toISOString()}, running backup now.`,
     )
 
     await runBackup()
@@ -128,7 +146,7 @@ export async function postIfNeeded() {
 
     if (schedule.endTime && new Date(schedule.endTime) <= now) {
       logger.log(
-        `Schedule ${schedule.id} has passed its end time. Deactivating schedule.`
+        `Schedule ${schedule.id} has passed its end time. Deactivating schedule.`,
       )
       await updateSchedule(schedule.id, { isActive: false })
       continue
@@ -141,7 +159,7 @@ export async function postIfNeeded() {
 
     if (!schedule.lastTriggered) {
       logger.log(
-        `Schedule ${schedule.id} has never been triggered. Setting lastTriggered to now.`
+        `Schedule ${schedule.id} has never been triggered. Setting lastTriggered to now.`,
       )
       await updateSchedule(schedule.id, { lastTriggered: now.toISOString() })
       schedule.lastTriggered = now.toISOString()
@@ -150,14 +168,14 @@ export async function postIfNeeded() {
     const nextRuns = getNextTriggerTimes(
       new Date(schedule.lastTriggered),
       schedule.frequency,
-      1
+      1,
     )
 
     const nextRun = nextRuns.length > 0 ? nextRuns[0] : null
 
     if (!nextRun) {
       logger.log(
-        `Could not determine next run for schedule ${schedule.id}. Skipping.`
+        `Could not determine next run for schedule ${schedule.id}. Skipping.`,
       )
       continue
     }
@@ -178,11 +196,26 @@ export async function postIfNeeded() {
     logger.log(
       `Triggering scheduled post for group ${
         schedule.group
-      } (scheduled for ${nextRun.toISOString()})`
+      } (scheduled for ${nextRun.toISOString()})`,
     )
     await publishNextPost(schedule.id)
     await updateSchedule(schedule.id, { lastTriggered: now.toISOString() })
   }
+}
+
+export async function refreshAccountInfoIfNeeded() {
+  if (
+    lastAccountInfoRefresh &&
+    Date.now() - lastAccountInfoRefresh.getTime() <
+      ACCOUNT_INFO_REFRESH_MINUTES * 60 * 1000
+  ) {
+    return
+  }
+
+  logger.log('Refreshing account info for all accounts.')
+  lastAccountInfoRefresh = new Date()
+  await updateAccountProfiles()
+  logger.log('Account info refresh complete.')
 }
 
 export function unscheduleAll() {

@@ -1,23 +1,24 @@
+import { getAppData, saveAppData } from '@/app/api-helpers/appData'
+import { DEFAULT_GROUP } from '@/config/main'
+import { wait } from '@/helpers/utils'
+import type { DraftPost } from '@/types/drafts'
 import type {
-  ScheduleFrequency,
-  Schedule,
   CreateScheduleRequest,
+  Schedule,
+  ScheduleFrequency,
   ScheduleLookups,
 } from '@/types/scheduler'
-import { getAppData, saveAppData } from '@/app/api-helpers/appData'
+import dayjs from 'dayjs'
+import timezone from 'dayjs/plugin/timezone'
+import utc from 'dayjs/plugin/utc'
+import { getNextDatetime } from '../../api-helpers/getNextDatetime'
+import Logger from '../../api-helpers/logger'
 import {
   getDraftPostsInGroup,
   getDraftPostsInSchedule,
   publishDraftPost,
 } from './DraftPostService'
-import type { DraftPost } from '@/types/drafts'
-import Logger from '../../api-helpers/logger'
-import { getNextDatetime } from '../../api-helpers/getNextDatetime'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-import timezone from 'dayjs/plugin/timezone'
-import { DEFAULT_GROUP } from '@/config/main'
-import { wait } from '@/helpers/utils'
+
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
@@ -68,9 +69,32 @@ function cleanFrequency(frequency: ScheduleFrequency): ScheduleFrequency {
 }
 
 export async function createSchedule(
-  request: CreateScheduleRequest
+  request: CreateScheduleRequest,
 ): Promise<Schedule> {
   const schedules = await getSchedules()
+
+  // let accounts =
+  //   request.accountIds && request.accountIds.length > 0
+  //     ? await getAccounts()
+  //     : []
+
+  const _appData = await getAppData()
+  let accounts = _appData.settings?.accounts || []
+
+  accounts = accounts.filter((acc) => request.accountIds.includes(acc.id))
+
+  if (
+    request.accountIds &&
+    request.accountIds.length > 0 &&
+    accounts.length === 0
+  ) {
+    throw new Error('No valid accounts found for the provided account IDs')
+  }
+
+  logger.log(`Creating schedule with name: ${request.name}`, {
+    frequency: request.frequency,
+    accounts: accounts.map((acc) => acc.id),
+  })
 
   const schedule: Schedule = {
     id: `schedule-${Date.now()}`,
@@ -78,7 +102,7 @@ export async function createSchedule(
     frequency: cleanFrequency(request.frequency),
     isActive: request.isActive ?? true,
     createdAt: new Date().toISOString(),
-    platforms: request.platforms,
+    accounts,
     group: request.group || DEFAULT_GROUP,
   }
 
@@ -90,7 +114,7 @@ export async function createSchedule(
 
 export async function updateSchedule(
   scheduleId: string,
-  updates: Partial<Schedule>
+  updates: Partial<Schedule>,
 ): Promise<Schedule> {
   logger.log(`Updating schedule ${scheduleId}`, updates)
   const schedules = await getSchedules()
@@ -125,7 +149,7 @@ export async function deleteSchedule(scheduleId: string): Promise<void> {
 
 export async function reorderSchedulePosts(
   scheduleId: string,
-  newOrder: string[]
+  newOrder: string[],
 ): Promise<void> {
   logger.log(`Reordering posts for schedule ${scheduleId}.`, { newOrder })
   const schedules = await getSchedules()
@@ -153,7 +177,7 @@ export async function reorderSchedulePosts(
 }
 
 export async function getSchedulePosts(
-  scheduleId: string
+  scheduleId: string,
 ): Promise<DraftPost[]> {
   const schedule = (await getSchedules()).find((s) => s.id === scheduleId)
   if (!schedule) {
@@ -165,7 +189,7 @@ export async function getSchedulePosts(
 
 export async function getScheduleLookups(
   scheduleId: string,
-  startDate?: Date
+  startDate?: Date,
 ): Promise<ScheduleLookups> {
   const schedules = await getSchedules()
   const schedule = schedules.find((s) => s.id === scheduleId)
@@ -184,14 +208,14 @@ export async function getScheduleLookups(
     nextPostDates = getNextTriggerTimes(
       startDate,
       schedule.frequency,
-      nextPosts.length
+      nextPosts.length,
     )
   }
   return { nextPosts, nextPostDates }
 }
 
 export async function getNextPost(
-  scheduleId: string
+  scheduleId: string,
 ): Promise<DraftPost | null> {
   const lookups = await getScheduleLookups(scheduleId)
   return lookups.nextPosts.length > 0 ? lookups.nextPosts[0] : null
@@ -214,7 +238,7 @@ export async function publishNextPost(scheduleId: string): Promise<void> {
   const nextTriggers = getNextTriggerTimes(
     new Date(schedule.lastTriggered),
     schedule.frequency,
-    1
+    1,
   )
   schedule.nextTrigger =
     nextTriggers.length > 0 ? nextTriggers[0].toISOString() : null
@@ -231,12 +255,16 @@ export async function publishNextPost(scheduleId: string): Promise<void> {
   logger.log(`Schedule ${scheduleId} found: ${schedule.name}`)
 
   logger.log(
-    `Next post for schedule ${schedule.name} is ${post.meta.directoryName}.`
+    `Next post for schedule ${schedule.name} is ${post.meta.directoryName}.`,
   )
 
-  // Just send to bluesky if no platforms specified
-  if (!schedule.platforms || schedule.platforms.length === 0) {
-    schedule.platforms = ['bluesky']
+  if (!schedule.accounts || schedule.accounts.length === 0) {
+    logger.log(
+      `No accounts specified for schedule ${schedule.name}. Skipping publish.`,
+    )
+    await updateScheduleData({ schedules })
+    logger.closing('Publish Next Post Process')
+    return
   }
 
   let attempts = 0
@@ -247,21 +275,24 @@ export async function publishNextPost(scheduleId: string): Promise<void> {
       logger.log(
         `Posting ${post.meta.directoryName} for schedule ${
           schedule.name
-        } (Attempt ${attempts + 1})`
+        } (Attempt ${attempts + 1})`,
       )
-      await publishDraftPost(post.meta.directoryName, schedule.platforms)
+      await publishDraftPost({
+        id: post.meta.directoryName,
+        accounts: schedule.accounts,
+      })
       successful = true
       break // Success, exit loop
     } catch (error) {
       attempts++
       logger.error(
         `Failed to publish ${post.meta.directoryName} for schedule ${schedule.name} (Attempt ${attempts}):`,
-        error
+        error,
       )
 
       if (attempts >= maxAttempts) {
         logger.error(
-          `Giving up after ${maxAttempts} attempts to publish ${post.meta.directoryName} for schedule ${schedule.name}.`
+          `Giving up after ${maxAttempts} attempts to publish ${post.meta.directoryName} for schedule ${schedule.name}.`,
         )
       } else {
         await wait(5000) // Wait 5 seconds before retrying
@@ -273,7 +304,7 @@ export async function publishNextPost(scheduleId: string): Promise<void> {
     logger.log(`Successfully posted draft ${post.meta.directoryName}`)
   } else {
     logger.log(
-      `Failed to post draft ${post.meta.directoryName} after ${maxAttempts} attempts.`
+      `Failed to post draft ${post.meta.directoryName} after ${maxAttempts} attempts.`,
     )
   }
 
@@ -286,7 +317,7 @@ export async function publishNextPost(scheduleId: string): Promise<void> {
 export function getNextTriggerTimes(
   startDate = new Date(),
   frequency: ScheduleFrequency,
-  count: number = 1
+  count: number = 1,
 ): Date[] {
   const now = startDate
   const { interval, timesOfDay, timeZone, daysOfWeek, daysOfMonth } = frequency
@@ -300,7 +331,7 @@ export function getNextTriggerTimes(
     timeZone,
     daysOfWeek,
     daysOfMonth,
-    count
+    count,
   )
 
   return run.length > 0 ? run : [now]

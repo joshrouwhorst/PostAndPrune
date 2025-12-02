@@ -1,24 +1,23 @@
-import { NextResponse } from 'next/server'
-
 import {
-  getDraftPosts,
+  withSocialLogoutForRequest,
+  withSocialLogoutWithId,
+} from '@/app/api-helpers/apiWrapper'
+import Logger from '@/app/api-helpers/logger'
+import {
   createDraftPost,
-  updateDraftPost,
+  getDraftPosts,
   getDraftPostsInGroup,
   getDraftPostsInSchedule,
+  updateDraftPost,
 } from '@/app/api/services/DraftPostService'
 import { getSchedules } from '@/app/api/services/SchedulePostService'
 import type { CreateDraftInput, DraftPost } from '@/types/drafts'
-import Logger from '@/app/api-helpers/logger'
-import {
-  withBskyLogoutForRequest,
-  withBskyLogoutWithId,
-} from '@/app/api-helpers/apiWrapper'
-import { Schedule } from '@/types/scheduler'
+import type { Schedule } from '@/types/scheduler'
+import { NextResponse } from 'next/server'
 
 const logger = new Logger('DraftsRoute')
 
-export const GET = withBskyLogoutForRequest(async (request) => {
+export const GET = withSocialLogoutForRequest(async (request) => {
   const { searchParams } = new URL(request.url)
   const group = searchParams.get('group') || undefined
   const scheduleId = searchParams.get('schedule') || undefined
@@ -30,13 +29,13 @@ export const GET = withBskyLogoutForRequest(async (request) => {
       posts = await getDraftPostsInGroup(group)
     } else if (scheduleId) {
       const schedule = (await getSchedules()).find(
-        (s) => s.id === scheduleId
+        (s) => s.id === scheduleId,
       ) as Schedule
 
       if (!schedule) {
         return NextResponse.json(
           { error: 'Schedule not found' },
-          { status: 404 }
+          { status: 404 },
         )
       }
 
@@ -63,18 +62,18 @@ export const GET = withBskyLogoutForRequest(async (request) => {
       {
         error: 'Failed to fetch posts',
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
 
-export const POST = withBskyLogoutForRequest(async (request) => {
+export const POST = withSocialLogoutForRequest(async (request) => {
   try {
     const input = await request.json()
     if (Array.isArray(input)) {
       // Handle multiple CreateDraftInputs
       const newPosts = await Promise.all(
-        input.map((item: CreateDraftInput) => createDraftPost(item))
+        input.map((item: CreateDraftInput) => createDraftPost(item)),
       )
       return NextResponse.json(newPosts, { status: 201 })
     } else {
@@ -86,18 +85,18 @@ export const POST = withBskyLogoutForRequest(async (request) => {
     logger.error('Failed to create post(s)', error)
     return NextResponse.json(
       { error: 'Failed to create post(s)' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })
 
-export const PUT = withBskyLogoutWithId(async (id, request) => {
+export const PUT = withSocialLogoutWithId(async (id, request) => {
   try {
     const input: CreateDraftInput = await request.json()
     if (!id) {
       return NextResponse.json(
         { error: 'Post ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -107,7 +106,7 @@ export const PUT = withBskyLogoutWithId(async (id, request) => {
     logger.error('Failed to update post', error)
     return NextResponse.json(
       { error: 'Failed to update post' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 })

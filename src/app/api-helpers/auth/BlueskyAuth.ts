@@ -1,57 +1,87 @@
-import { AtpAgent, RichText } from '@atproto/api'
-import type { FeedViewPost } from '@/types/bsky'
-import type { DraftPost } from '@/types/drafts'
-import fs from 'fs/promises'
-import { Governor } from './governor'
-import Logger from './logger'
-import { getSettings } from '../api/services/SettingsService'
+import { getCache, setCache } from '@/app/api/services/CacheService'
+import CredentialService from '@/app/api/services/CredentialService'
+import type { PostDisplayData } from '@/components/Post'
 import { getPaths, PREVENT_POSTING } from '@/config/main'
 import { wait } from '@/helpers/utils'
+import { transformFeedViewPostToDisplayData } from '@/transformers/transformFeedViewPostToDisplayData'
+import type { Account, Credentials, Profile } from '@/types/accounts'
+import type { FeedViewPost } from '@/types/bsky'
+import type { DraftPost } from '@/types/drafts'
+import { AtpAgent, RichText } from '@atproto/api'
+import type * as AppBskyActorGetProfile from '@atproto/api/src/client/types/app/bsky/actor/getProfile'
 import ExifReader from 'exifreader'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { Governor } from '../governor'
+import Logger from '../logger'
 
 const logger = new Logger('BlueskySvc')
 
 const governor = new Governor(1000)
+
+function cacheId(accountId: string) {
+  return `backup-cache-${accountId}`
+}
 
 export interface PostFilters {
   cutoffDate?: Date
   isComment?: boolean // whether to delete comments/replies as well
 }
 
-let postCache: FeedViewPost[] | null = null
-let cacheDate: Date | null = null
 const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
 
-let _agent: AtpAgent | null = null
+const _agents: Map<
+  string,
+  { agent: AtpAgent; account: Account; credentials: Credentials }
+> = new Map()
 
-async function getAgent(): Promise<AtpAgent> {
-  if (!_agent) {
+async function getAgent(account: Account): Promise<AtpAgent> {
+  if (!_agents.has(account.id)) {
     logger.log('Creating Bluesky agent.')
-    _agent = await createAgent()
+    const credentials = await CredentialService.getCredentials(account)
+    if (!credentials) {
+      throw new Error('No credentials found for account')
+    }
+    const agent = await createAgent(account, credentials)
+    _agents.set(account.id, { agent, account, credentials })
   }
-  return _agent
+  const agent = _agents.get(account.id)?.agent
+  if (!agent) throw new Error('Failed to get Bluesky agent')
+  return agent
 }
 
-export async function logout() {
-  if (_agent) {
-    logger.log('Logging out from Bluesky.')
-    await _agent.logout()
-    _agent = null
+export async function logout(account: Account) {
+  const agent = await getAgent(account)
+
+  if (agent) {
+    logger.log(`Logging ${account.name} out from Bluesky.`)
+    await agent.logout()
+    _agents.delete(account.id)
   } else {
     logger.log('No agent to log out.')
   }
 }
 
-async function createAgent(): Promise<AtpAgent> {
-  const settings = await getSettings()
-  const BSKY_IDENTIFIER =
-    settings?.bskyIdentifier || process.env.BSKY_IDENTIFIER
-  const BSKY_PASSWORD = settings?.bskyPassword || process.env.BSKY_PASSWORD
+export async function logoutAll() {
+  for (const { agent, account } of _agents.values()) {
+    logger.log(`Logging ${account.name} out from Bluesky.`)
+    await agent.logout()
+  }
+  _agents.clear()
+}
+
+async function createAgent(
+  account: Account,
+  credentials: Credentials,
+): Promise<AtpAgent> {
+  const BSKY_IDENTIFIER = credentials.identifier
+  const BSKY_PASSWORD = credentials.password
 
   if (!BSKY_IDENTIFIER || !BSKY_PASSWORD) {
-    logger.error('Cannot find Bluesky credentials in settings.')
-    throw new Error('Bluesky credentials are not set in settings')
+    logger.error(
+      `Cannot find Bluesky credentials in account ${account.name}(${account.id}).`,
+    )
+    throw new Error('Bluesky credentials are not set in account')
   }
 
   const agent = new AtpAgent({
@@ -78,7 +108,7 @@ async function createAgent(): Promise<AtpAgent> {
         throw new Error(
           `Failed to login after ${maxLoginAttempts} attempts: ${
             loginError instanceof Error ? loginError.message : 'Unknown error'
-          }`
+          }`,
         )
       }
 
@@ -90,21 +120,60 @@ async function createAgent(): Promise<AtpAgent> {
   return agent
 }
 
-export async function getPosts(
-  config?: PostFilters,
-  useCache: boolean = false
-): Promise<FeedViewPost[]> {
-  const agent = await getAgent()
+export async function getAccountInfo(account: Account): Promise<Profile> {
+  const agent = await getAgent(account)
+  await governor.wait()
+  const response = (await agent.getProfile({
+    actor: 'self',
+  })) as AppBskyActorGetProfile.Response
+  if (!response.success) {
+    throw new Error('Failed to fetch account profile')
+  }
 
-  // Use cached posts if within cache duration
-  if (
-    useCache &&
-    postCache &&
-    cacheDate &&
-    Date.now() - cacheDate.getTime() < CACHE_DURATION_MS
-  ) {
-    logger.log('Using cached posts.')
-    return postCache
+  return {
+    handle: response.data.handle,
+    displayName: response.data.displayName,
+    avatarUrl: response.data.avatar || undefined,
+  }
+}
+
+export async function getPosts(
+  account: Account,
+  config?: PostFilters,
+  useCache: boolean = false,
+): Promise<PostDisplayData[]> {
+  try {
+    const posts = await getPostsAsFeedViewPosts(account, config, useCache)
+    setCache(cacheId(account.id), posts)
+    return posts.map((post) =>
+      transformFeedViewPostToDisplayData(post, account.id),
+    )
+  } catch (error) {
+    logger.error('Error fetching posts:', error)
+    throw new Error(
+      `Failed to fetch posts: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
+  }
+}
+
+export async function getPostsAsFeedViewPosts(
+  account: Account,
+  config?: PostFilters,
+  useCache: boolean = false,
+): Promise<FeedViewPost[]> {
+  const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
+
+  if (useCache && cache) {
+    return cache
+  }
+
+  const agent = await getAgent(account)
+
+  const credentials = await CredentialService.getCredentials(account)
+  if (!credentials) {
+    throw new Error('No credentials found for account')
   }
 
   await governor.wait()
@@ -112,9 +181,7 @@ export async function getPosts(
   const postList: FeedViewPost[] = []
 
   try {
-    const settings = await getSettings()
-    const BSKY_IDENTIFIER =
-      settings?.bskyIdentifier || process.env.BSKY_IDENTIFIER
+    const BSKY_IDENTIFIER = credentials.identifier
 
     if (!BSKY_IDENTIFIER) {
       logger.error('Cannot find Bluesky identifier in settings')
@@ -152,22 +219,24 @@ export async function getPosts(
       cursor = response.data.cursor
     } while (cursor)
 
-    postCache = postList
-    cacheDate = new Date()
+    setCache(cacheId(account.id), postList, CACHE_DURATION_MS)
   } catch (error) {
     logger.error('Error fetching posts:', error)
     throw new Error(
       `Failed to fetch posts: ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`
+      }`,
     )
   }
 
   return postList
 }
 
-export async function deletePostsWithUris(postUris: string[]): Promise<void> {
-  const agent = await getAgent()
+export async function deletePostsWithUris(
+  account: Account,
+  postUris: string[],
+): Promise<void> {
+  const agent = await getAgent(account)
   await governor.wait()
 
   try {
@@ -175,11 +244,19 @@ export async function deletePostsWithUris(postUris: string[]): Promise<void> {
       logger.log(`Deleting post: ${postUri}`)
       if (PREVENT_POSTING) {
         logger.log(
-          'PREVENT_POSTING is enabled, skipping actual deletion of post.'
+          'PREVENT_POSTING is enabled, skipping actual deletion of post.',
         )
         continue
       }
       await agent.deletePost(postUri)
+
+      // Update cache
+      const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
+      if (cache) {
+        const updatedCache = cache.filter((post) => post.post.uri !== postUri)
+        setCache(cacheId(account.id), updatedCache, CACHE_DURATION_MS)
+      }
+
       logger.log(`Successfully deleted post: ${postUri}`)
     }
   } catch (error) {
@@ -187,17 +264,25 @@ export async function deletePostsWithUris(postUris: string[]): Promise<void> {
     throw new Error(
       `Failed to delete post: ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`
+      }`,
     )
   }
 }
 
-export async function deletePosts(config: PostFilters): Promise<void> {
-  const agent = await getAgent()
+export async function deletePosts(
+  account: Account,
+  config: PostFilters,
+): Promise<void> {
+  const agent = await getAgent(account)
+
+  const credentials = await CredentialService.getCredentials(account)
+  if (!credentials) {
+    throw new Error('No credentials found for account')
+  }
+
   await governor.wait()
-  const settings = await getSettings()
-  const BSKY_IDENTIFIER =
-    settings?.bskyIdentifier || process.env.BSKY_IDENTIFIER
+
+  const BSKY_IDENTIFIER = credentials.identifier
 
   if (!BSKY_IDENTIFIER) {
     logger.error('Cannot find Bluesky identifier in settings')
@@ -247,7 +332,7 @@ export async function deletePosts(config: PostFilters): Promise<void> {
         cursor = response.data.cursor
 
         // Add a small delay between requests to avoid rate limiting
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        await governor.wait(500)
       } catch (fetchError) {
         console.error(`Error fetching page ${pageCount}:`, fetchError)
 
@@ -269,24 +354,31 @@ export async function deletePosts(config: PostFilters): Promise<void> {
 
     console.log(`Found ${postsToDelete.length} posts to delete`)
 
-    // Delete the old posts
+    // Delete the posts
     for (let i = 0; i < postsToDelete.length; i++) {
       const postUri = postsToDelete[i]
       try {
         console.log(
-          `Deleting post ${i + 1}/${postsToDelete.length}: ${postUri}`
+          `Deleting post ${i + 1}/${postsToDelete.length}: ${postUri}`,
         )
         await governor.wait(200)
         if (PREVENT_POSTING) {
           logger.log(
-            'PREVENT_POSTING is enabled, skipping actual deletion of post.'
+            'PREVENT_POSTING is enabled, skipping actual deletion of post.',
           )
           continue
         }
         await agent.deletePost(postUri)
 
+        // Update cache
+        const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
+        if (cache) {
+          const updatedCache = cache.filter((post) => post.post.uri !== postUri)
+          setCache(cacheId(account.id), updatedCache, CACHE_DURATION_MS)
+        }
+
         // Add delay between deletions to avoid rate limiting
-        await wait(500)
+        await governor.wait(500)
       } catch (deleteError) {
         logger.error(`Error deleting post ${postUri}:`, deleteError)
 
@@ -308,7 +400,7 @@ export async function deletePosts(config: PostFilters): Promise<void> {
     throw new Error(
       `Failed to delete posts: ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`
+      }`,
     )
   }
 }
@@ -325,8 +417,11 @@ function removeOriginalPosts(posts: FeedViewPost[]): FeedViewPost[] {
   })
 }
 
-export async function addPost(post: DraftPost) {
-  const agent = await getAgent()
+export async function addPost(
+  post: DraftPost,
+  account: Account,
+): Promise<void> {
+  const agent = await getAgent(account)
   await governor.wait()
 
   try {
@@ -388,7 +483,7 @@ export async function addPost(post: DraftPost) {
     await richText.detectFacets(agent)
 
     await governor.wait(200)
-    await agent.post({
+    const postData = {
       text: richText.text,
       createdAt: new Date().toISOString(),
       langs: ['en'],
@@ -406,7 +501,15 @@ export async function addPost(post: DraftPost) {
             ...uploadedVideo,
           }
         : undefined,
-    })
+    }
+
+    await agent.post(postData)
+
+    // Invalidate cache to ensure fresh data on next fetch
+    const cache = getCache<FeedViewPost[] | null>(cacheId(account.id))
+    if (cache) {
+      setCache(cacheId(account.id), null) // Clear cache
+    }
 
     console.log(`Successfully added post: ${post.meta.text}`)
   } catch (error) {
@@ -418,7 +521,7 @@ export async function addPost(post: DraftPost) {
 function getAltFromExif(tags: ExifReader.Tags): string | null {
   const getTagValue = (
     tags: ExifReader.Tags,
-    tagName: string
+    tagName: string,
   ): string | null => {
     if (tags[tagName]?.value) {
       if (typeof tags[tagName]?.value === 'string') {
@@ -462,12 +565,13 @@ function getAltFromExif(tags: ExifReader.Tags): string | null {
  * @returns Promise<boolean> - true if successful, false otherwise
  */
 export async function saveBlobToFile(
+  account: Account,
   cid: string,
   filePath: string,
-  did: string
+  did: string,
 ): Promise<boolean> {
   try {
-    const agent = await getAgent()
+    const agent = await getAgent(account)
 
     let success = false
     let response = null

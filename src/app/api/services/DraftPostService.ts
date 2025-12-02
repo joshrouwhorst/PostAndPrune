@@ -1,11 +1,11 @@
-import { addPost as addPostToBsky } from '@/app/api-helpers/bluesky'
+import { addPost as addPostToBsky } from '@/app/api-helpers/auth/BlueskyAuth'
 import {
   DEFAULT_GROUP,
   DEFAULT_POST_SLUG,
   DRAFT_MEDIA_ENDPOINT,
   getPaths,
-  SUPPORTED_SOCIAL_PLATFORMS,
 } from '@/config/main'
+import type { Account } from '@/types/accounts'
 import type {
   CreateDraftInput,
   DraftMedia,
@@ -13,7 +13,7 @@ import type {
   DraftMeta,
   DraftPost,
 } from '@/types/drafts'
-import type { Schedule, SocialPlatform } from '@/types/scheduler'
+import type { Schedule } from '@/types/scheduler'
 import { Jimp } from 'jimp'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -29,6 +29,7 @@ import {
   readText,
   writeFile,
 } from './FileService'
+import { getAccounts } from './SettingsService'
 
 const META_FILENAME = 'meta.json'
 const TEXT_FILENAME = 'post.txt'
@@ -54,14 +55,14 @@ async function init() {
 }
 
 export async function getDraftPostsInGroup(
-  group: string
+  group: string,
 ): Promise<DraftPost[]> {
   const posts = await getDraftPosts()
   return posts.filter((p) => p.group === group)
 }
 
 export async function getDraftPostsInSchedule(
-  schedule: Schedule
+  schedule: Schedule,
 ): Promise<DraftPost[]> {
   if (!schedule.group) {
     return []
@@ -125,7 +126,7 @@ export async function getDraftPosts(): Promise<DraftPost[]> {
           (d) =>
             !d.name.startsWith('@eaDir') &&
             !d.name.startsWith('.') &&
-            !d.name.startsWith('$')
+            !d.name.startsWith('$'),
         )
         .map((d) => d.name)
 
@@ -149,7 +150,7 @@ export async function getDraftPosts(): Promise<DraftPost[]> {
 export async function getDraftPost(
   id: string,
   group?: string,
-  noCache: boolean = false
+  noCache: boolean = false,
 ): Promise<DraftPost | null> {
   // If there's no group check all the groups for the post
   if (!group) {
@@ -210,7 +211,7 @@ export async function getDraftPost(
 }
 
 export async function createDraftPost(
-  input: CreateDraftInput
+  input: CreateDraftInput,
 ): Promise<DraftPost> {
   const text = input.text || ''
   const inputImages = input.images ?? []
@@ -286,7 +287,7 @@ export async function createDraftPost(
   // Return post with text loaded from file
   const postText = await readPostText(postDir)
   logger.log(
-    `Created draft post ${directoryName} in ${input.group || 'no group'}.`
+    `Created draft post ${directoryName} in ${input.group || 'no group'}.`,
   )
 
   const post = {
@@ -311,7 +312,7 @@ export async function deleteDraftPost(id: string): Promise<void> {
   if (_cache) {
     _cache = setCache(
       CACHE_ID,
-      _cache.filter((p) => p.fullPath !== post.fullPath)
+      _cache.filter((p) => p.fullPath !== post.fullPath),
     )
   }
 }
@@ -354,7 +355,7 @@ export async function duplicateDraftPost(id: string): Promise<DraftPost> {
         } catch (err) {
           logger.error(
             `Failed to copy directory ${srcPath} to ${destPath}`,
-            err
+            err,
           )
           throw err
         }
@@ -395,7 +396,7 @@ export async function duplicateDraftPost(id: string): Promise<DraftPost> {
 
 export async function updateDraftPost(
   directoryName: string,
-  input: CreateDraftInput
+  input: CreateDraftInput,
 ): Promise<DraftPost | null> {
   logger.log(`Updating draft post ${directoryName}.`)
   const posts = await getDraftPosts()
@@ -438,7 +439,7 @@ export async function updateDraftPost(
 
   if (post.group !== input.group) {
     logger.log(
-      `Moving draft post ${directoryName} from group ${post.group} to ${input.group}.`
+      `Moving draft post ${directoryName} from group ${post.group} to ${input.group}.`,
     )
     await movePostToGroup(post, input.group || DEFAULT_GROUP)
   }
@@ -477,47 +478,62 @@ export async function getGroups(): Promise<string[]> {
 
 export async function readMediaFile(
   post: DraftPost,
-  filePath: string
+  filePath: string,
 ): Promise<Buffer> {
   const p = path.join(post.fullPath, post.meta.mediaDir, filePath)
   return fs.readFile(p)
 }
 
-export async function publishDraftPost(
-  id: string,
-  platforms?: string[]
-): Promise<void> {
+export async function publishDraftPost({
+  id,
+  accounts,
+  accountIds,
+}: {
+  id: string
+  accounts?: Account[]
+  accountIds?: string[]
+}): Promise<void> {
+  if (!accounts && !accountIds)
+    throw new Error('Either accounts or accountIds must be provided')
+
   const post = await getDraftPost(id)
   if (!post) throw new Error('Post not found')
-  if (!platforms || platforms.length === 0) {
-    platforms = [...SUPPORTED_SOCIAL_PLATFORMS]
+
+  if (accountIds && accountIds.length > 0) {
+    const allAccounts = await getAccounts()
+    accounts = allAccounts.filter((acc) => accountIds.includes(acc.id))
+  } else {
+    accounts = accounts || []
   }
 
-  for (const platform of platforms) {
-    await sendToSocialPlatform(post, platform as SocialPlatform)
+  if (!accounts || accounts.length === 0) {
+    throw new Error('No valid accounts found for publishing')
+  }
+
+  for (const account of accounts) {
+    await sendToAccount(post, account)
   }
 }
 
-async function sendToSocialPlatform(
-  post: DraftPost,
-  platform: SocialPlatform
-): Promise<void> {
+async function sendToAccount(post: DraftPost, account: Account): Promise<void> {
   // Implement actual social media posting logic here
   // This would integrate with platform-specific APIs
-  switch (platform) {
+  switch (account.platform) {
     case 'bluesky':
       // Integrate with Bluesky API
-      await addPostToBsky(post)
+      await addPostToBsky(post, account)
       await movePostToPublished(post)
       break
     default:
-      throw new Error(`Platform ${platform} not supported`)
+      throw new Error(
+        `Account ${account.name} is using unsupported platform ${account.platform}.`,
+      )
   }
 }
 
 export async function reorderGroupPosts(
   group: string,
-  newOrder: string[]
+  newOrder: string[],
 ): Promise<void> {
   logger.log(`Reordering posts for group ${group}.`, { newOrder })
   const postsToReorder = await getDraftPostsInGroup(group)
@@ -572,7 +588,7 @@ async function readMedia(postDir: string): Promise<{
   await ensureDir(mediaPath)
   const mediaRaw = await listFiles(mediaPath)
   const images: DraftMedia[] = []
-  let video: DraftMedia | undefined = undefined
+  let video: DraftMedia | undefined
 
   if (!mediaRaw || mediaRaw.length === 0) {
     return { images: undefined, video: undefined }
@@ -647,7 +663,7 @@ async function readMedia(postDir: string): Promise<{
 }
 
 async function getImageDimensions(
-  filePath: string
+  filePath: string,
 ): Promise<{ width: number; height: number; size: number }> {
   try {
     const metadata = await Jimp.read(filePath)
@@ -664,7 +680,7 @@ async function getImageDimensions(
 }
 
 async function getVideoDimensions(
-  filePath: string
+  filePath: string,
 ): Promise<{ width: number; height: number; size: number }> {
   try {
     const stats = await fs.stat(filePath)
@@ -758,7 +774,7 @@ export function generateDirPath({
 async function addImage(
   image: DraftMediaFileInput,
   index: number,
-  mediaDir: string
+  mediaDir: string,
 ) {
   const img = image
   const ext = extFromFilename(img.filename) || '.jpg'
@@ -793,7 +809,7 @@ function extFromFilename(filename: string) {
 
 async function updatePostDirectoryName(
   oldPath: string,
-  newPath: string
+  newPath: string,
 ): Promise<void> {
   logger.log(`Updating directory name for post ${oldPath} to ${newPath}.`)
   await moveFileOrDirectory(oldPath, newPath)
@@ -801,10 +817,10 @@ async function updatePostDirectoryName(
 
 async function movePostToGroup(
   post: DraftPost,
-  newGroup: string
+  newGroup: string,
 ): Promise<DraftPost> {
   logger.log(
-    `Moving draft post ${post.meta.directoryName} to group ${newGroup}.`
+    `Moving draft post ${post.meta.directoryName} to group ${newGroup}.`,
   )
   const groupDir = path.join(draftPostsPath, newGroup)
   await ensureDir(groupDir)
@@ -825,7 +841,7 @@ async function movePostToPublished(post: DraftPost): Promise<DraftPost> {
   const newDir = path.join(
     publishedPostsPath,
     ...(post.group ? [post.group] : []),
-    path.basename(post.fullPath)
+    path.basename(post.fullPath),
   )
 
   await ensureDir(newDir)

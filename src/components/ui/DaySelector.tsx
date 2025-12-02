@@ -15,7 +15,7 @@ export default function DaySelector({
   className,
 }: DaySelectorProps) {
   const [selectedSet, setSelectedSet] = useState<Set<number>>(
-    () => new Set(selected.filter((d) => d >= 1 && d <= 31))
+    () => new Set(selected.filter((d) => d >= 1 && d <= 31)),
   )
   const lastAnchor = useRef<number | null>(null)
   const isDragging = useRef(false)

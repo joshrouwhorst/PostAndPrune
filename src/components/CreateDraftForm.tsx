@@ -2,21 +2,20 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
 import {
   Button,
-  Textarea,
   Input,
   Label,
   LinkButton,
+  Textarea,
 } from '@/components/ui/forms'
-import { X, ExternalLink } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { Buffer } from 'buffer'
-import { useDrafts } from '@/hooks/useDrafts'
-import Image from 'next/image'
 import { DEFAULT_GROUP } from '@/config/frontend'
-import { CreateDraftInput, DraftMedia } from '@/types/drafts'
+import { useDrafts } from '@/hooks/useDrafts'
+import type { CreateDraftInput, DraftMedia } from '@/types/drafts'
+import { ExternalLink, X } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface CreateDraftFormProps {
   redirect?: string
@@ -48,8 +47,8 @@ export function CreateDraftForm({
           draft.meta.images.length > 0
             ? draft.meta.images
             : draft.meta.video
-            ? [draft.meta.video]
-            : []
+              ? [draft.meta.video]
+              : [],
         )
         setGroup(draft.group || '')
       }
@@ -66,9 +65,9 @@ export function CreateDraftForm({
     setFilesToUpload((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const convertFileToBuffer = async (file: File): Promise<Buffer> => {
+  const convertFileToBuffer = async (file: File): Promise<ArrayBuffer> => {
     const arrayBuffer = await file.arrayBuffer()
-    return Buffer.from(arrayBuffer)
+    return arrayBuffer
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,14 +84,14 @@ export function CreateDraftForm({
           kind: 'image' as const,
           filename: file.name,
           mime: file.type,
-          data,
+          data: new Uint8Array(data),
         })
       } else if (file.type.startsWith('video/')) {
         video = {
           kind: 'video' as const,
           filename: file.name,
           mime: file.type,
-          data,
+          data: new Uint8Array(data),
         }
         break // Only one video allowed
       }

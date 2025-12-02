@@ -1,3 +1,4 @@
+import type { Account } from '@/types/accounts'
 import type { CreateDraftInput, DraftPost } from '@/types/drafts'
 import type { Schedule } from '@/types/scheduler'
 import {
@@ -23,7 +24,7 @@ jest.mock('../FileService', () => ({
 }))
 
 // Mock the bluesky helper
-jest.mock('../../../api-helpers/bluesky', () => ({
+jest.mock('../../../api-helpers/auth/BlueskyAuth', () => ({
   addPost: jest.fn(),
 }))
 
@@ -77,6 +78,21 @@ describe('DraftPostService', () => {
     // Restore real timers
     jest.useRealTimers()
   })
+
+  const mockAccount: Account = {
+    name: 'Test Account',
+    id: 'account1',
+    platform: 'bluesky',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    credentials: {
+      bluesky: {
+        identifier: 'test-identifier',
+        password: 'test-password',
+      },
+    },
+  }
+
   const mockSchedule: Schedule = {
     id: 'test-schedule',
     name: 'Test Schedule',
@@ -89,7 +105,7 @@ describe('DraftPostService', () => {
     },
     postOrder: ['post1', 'post2', 'post3'],
     createdAt: MOCK_ISO_STRING,
-    platforms: ['bluesky'],
+    accounts: [mockAccount],
   }
 
   const mockDraftPost: DraftPost = {
@@ -200,7 +216,7 @@ describe('DraftPostService', () => {
       }
 
       await expect(createDraftPost(inputWithTooManyImages)).rejects.toThrow(
-        'max 4 images allowed'
+        'max 4 images allowed',
       )
     })
 
@@ -215,7 +231,7 @@ describe('DraftPostService', () => {
       }
 
       await expect(createDraftPost(inputWithInvalidVideo)).rejects.toThrow(
-        "video kind must be 'video'"
+        "video kind must be 'video'",
       )
     })
   })
@@ -294,14 +310,14 @@ describe('DraftPostService', () => {
         async (_src: string, _dest: string) => {
           copyCalled = true
           return Promise.resolve()
-        }
+        },
       )
       writeFile.mockResolvedValue(undefined)
 
       readText.mockImplementation(async (path: string) => {
         if (
           path.includes('post1/meta.json') ||
-          path.includes(dupedPath.fullPath + '/meta.json')
+          path.includes(`${dupedPath.fullPath}/meta.json`)
         ) {
           return JSON.stringify(mockDraftPost.meta)
         }
@@ -352,7 +368,7 @@ describe('DraftPostService', () => {
           return true
         }
         // After copy, the new meta.json should exist
-        if (path === dupedPath.fullPath + '/meta.json' && copyCalled) {
+        if (path === `${dupedPath.fullPath}/meta.json` && copyCalled) {
           return true
         }
         return false
@@ -457,14 +473,14 @@ describe('DraftPostService', () => {
       }
 
       await expect(updateDraftPost('nonexistent', updateData)).rejects.toThrow(
-        'Cannot find post to update'
+        'Cannot find post to update',
       )
     })
   })
 
   describe('publishDraftPost', () => {
     const { checkIfExists, readText, listFiles } = require('../FileService')
-    const { addPost } = require('../../../api-helpers/bluesky')
+    const { addPost } = require('../../../api-helpers/auth/BlueskyAuth')
 
     it('should publish a draft post to Bluesky', async () => {
       checkIfExists.mockResolvedValue(true)
@@ -514,7 +530,7 @@ describe('DraftPostService', () => {
       addPost.mockResolvedValue({ success: true })
 
       await expect(
-        publishDraftPost('post1', ['bluesky'])
+        publishDraftPost({ id: 'post1', accounts: [mockAccount] }),
       ).resolves.not.toThrow()
       expect(addPost).toHaveBeenCalled()
     })
@@ -542,7 +558,7 @@ describe('DraftPostService', () => {
       })
 
       await expect(
-        publishDraftPost('nonexistent', ['bluesky'])
+        publishDraftPost({ id: 'nonexistent', accounts: [mockAccount] }),
       ).rejects.toThrow('Post not found')
     })
 
@@ -592,8 +608,23 @@ describe('DraftPostService', () => {
       })
 
       // The function should throw for unsupported platforms with a descriptive error
-      await expect(publishDraftPost('post1', ['twitter'])).rejects.toThrow(
-        'Platform twitter not supported'
+      await expect(
+        publishDraftPost({
+          id: 'post1',
+          accounts: [
+            {
+              id: 'account1',
+              name: 'Unsupported Account',
+              platform: 'unsupported-platform',
+              credentials: {},
+              isActive: true,
+              isDefault: false,
+              createdAt: new Date().toISOString(),
+            } as unknown as Account,
+          ],
+        }),
+      ).rejects.toThrow(
+        'Account Unsupported Account is using unsupported platform unsupported-platform.',
       )
     })
   })

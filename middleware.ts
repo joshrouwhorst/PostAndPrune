@@ -1,5 +1,6 @@
+import type { NextFetchEvent, NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import type { NextRequest, NextFetchEvent } from 'next/server'
+import { logoutAllAccounts } from './src/app/api-helpers/auth/AuthManager'
 
 /**
  * Middleware to automatically logout from Bluesky after API calls
@@ -42,8 +43,7 @@ function shouldAutoLogout(pathname: string): boolean {
 async function performLogout() {
   try {
     // Dynamically import to avoid circular dependencies
-    const { logout } = await import('./src/app/api-helpers/bluesky')
-    await logout()
+    await logoutAllAccounts()
     console.log('Bluesky logout completed via middleware')
   } catch (error) {
     console.error('Failed to logout from Bluesky via middleware:', error)

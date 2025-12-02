@@ -1,17 +1,18 @@
 'use client'
+import logo from '@/../public/logo.svg'
 import { HEADER_NAV_ITEMS } from '@/config/frontend'
-import Link from 'next/link'
+import clsx from 'clsx'
 import { Menu } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from './ui/forms'
-import { clsx } from 'clsx'
 
 const styles = {
   navBar:
-    'relative flex flex-row items-stretch justify-between border-b border-gray-200 dark:border-gray-700',
-  logoContainer:
-    'flex items-center p-4 border-l border-gray-200 bg-blue-200 text-blue-950 dark:border-gray-700 dark:bg-blue-950 dark:text-white',
-  logoText: 'text-2xl font-bold',
+    'relative flex flex-row justify-between border-b border-gray-200 dark:border-gray-700 h-16',
+  logoOuterContainer: 'relative h-full flex items-center p-4',
+  logoInnerContainer: 'relative h-full',
   navMenu:
     'absolute top-full right-0 lg:relative lg:top-auto lg:right-auto lg:block',
   navList:
@@ -27,8 +28,20 @@ const HeaderNav = () => {
 
   return (
     <div className={styles.navBar}>
-      <div className={styles.logoContainer}>
-        <div className={styles.logoText}>BskyBackup</div>
+      <div className={styles.logoOuterContainer}>
+        <div
+          className={styles.logoInnerContainer}
+          style={{ aspectRatio: '9/1' }}
+        >
+          <Image
+            src={logo}
+            alt="Post&Prune Logo"
+            fill
+            className="object-contain"
+            sizes="(max-width: 768px) 200px, 300px"
+            priority
+          />
+        </div>
       </div>
 
       {/* Nav: hidden on lg and below unless menu is open */}

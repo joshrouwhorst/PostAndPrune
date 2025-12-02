@@ -1,15 +1,16 @@
 'use client'
 
+import { useSettings } from '@/hooks/useSettings'
+import type { Account } from '@/types/accounts'
+import type { Settings } from '@/types/types'
 import {
   createContext,
+  type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
-  type ReactNode,
-  useCallback,
 } from 'react'
-import type { Settings } from '@/types/types'
-import { useSettings } from '@/hooks/useSettings'
 
 interface SettingsContextType {
   settings: Settings | null
@@ -17,11 +18,12 @@ interface SettingsContextType {
   update: (newSettings: Partial<Settings>) => Promise<void>
   isLoading: boolean
   error: Error | null
+  validateAccount: (account: Account) => Promise<boolean>
 }
 
 // Create the context
 const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined
+  undefined,
 )
 
 interface SettingsProviderProps {
@@ -29,15 +31,47 @@ interface SettingsProviderProps {
 }
 
 export default function SettingsProvider({ children }: SettingsProviderProps) {
-  const [settings, setSettings] = useState<Settings | null>(() => {
-    const stored =
-      typeof window !== 'undefined' ? localStorage.getItem('settings') : null
-    return stored ? JSON.parse(stored) : null
-  })
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [hasInitialServerFetch, setHasInitialServerFetch] = useState(false)
 
-  const { fetchSettings, updateSettings } = useSettings()
+  const { fetchSettings, updateSettings, validateAccount } = useSettings()
+
+  // Load from localStorage immediately on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('settings')
+    if (stored) {
+      try {
+        setSettings(JSON.parse(stored))
+      } catch (err) {
+        console.error('Failed to parse stored settings:', err)
+        localStorage.removeItem('settings')
+      }
+    }
+    setIsHydrated(true)
+  }, [])
+
+  // Separate effect to fetch from server asynchronously (only once)
+  useEffect(() => {
+    if (!isHydrated || hasInitialServerFetch) return
+
+    const fetchFromServer = async () => {
+      try {
+        const data = await fetchSettings()
+        localStorage.setItem('settings', JSON.stringify(data))
+        setSettings(data)
+        setHasInitialServerFetch(true)
+      } catch (err) {
+        console.error('Failed to fetch settings from server:', err)
+        setError(err as Error)
+        setHasInitialServerFetch(true) // Still mark as attempted to prevent retry loops
+      }
+    }
+
+    fetchFromServer()
+  }, [isHydrated, hasInitialServerFetch, fetchSettings])
 
   const refresh = useCallback(async () => {
     setIsLoading(true)
@@ -67,23 +101,19 @@ export default function SettingsProvider({ children }: SettingsProviderProps) {
     }
   }
 
+  // Handle onboarding redirect - only after hydration and initial server fetch attempt
   useEffect(() => {
-    const checkOnboarding = async () => {
-      if (!settings) {
-        await refresh()
-      }
+    if (!isHydrated || !hasInitialServerFetch) return
 
-      if (
-        (settings === null || !settings.hasOnboarded) &&
-        window.location.pathname !== '/settings'
-      ) {
-        // Redirect to /settings
-        console.log('Redirecting to /settings for onboarding')
-        window.location.href = '/settings'
-      }
+    if (
+      (settings === null || !settings.hasOnboarded) &&
+      window.location.pathname !== '/settings'
+    ) {
+      // Redirect to /settings
+      console.log('Redirecting to /settings for onboarding')
+      window.location.href = '/settings'
     }
-    checkOnboarding()
-  }, [settings, settings?.hasOnboarded, refresh])
+  }, [settings, settings?.hasOnboarded, isHydrated, hasInitialServerFetch])
 
   const contextValue: SettingsContextType = {
     settings,
@@ -91,6 +121,7 @@ export default function SettingsProvider({ children }: SettingsProviderProps) {
     update,
     isLoading,
     error,
+    validateAccount,
   }
 
   return (

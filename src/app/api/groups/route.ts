@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getGroups } from '../services/DraftPostService'
 import Logger from '../../api-helpers/logger'
+import { getGroups } from '../services/DraftPostService'
 
 const logger = new Logger('GroupsRoute')
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const groups = await getGroups()
     if (!groups || !Array.isArray(groups)) {
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       {
         error: 'Failed to fetch groups',
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

@@ -1,20 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { logout as bskyLogout } from './bluesky'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { logoutAll as bskyLogout } from './auth/BlueskyAuth'
 import Logger from './logger'
 
 const logger = new Logger('ApiWrapper')
 
+const logoutFromSocials = async () => {
+  await bskyLogout()
+  // Add logouts for other platforms as well
+}
+
 /**
- * Wraps API route handlers to automatically logout from Bluesky after each call
+ * Wraps API route handlers to automatically logout from social accounts after each call
  * For handlers that don't need request parameter
  *
  * Usage:
- * export const GET = withBskyLogout(async () => {
+ * export const GET = withSocialLogout(async () => {
  *   // your API logic here
  *   return NextResponse.json({ data: 'something' })
  * })
  */
-export function withBskyLogout(handler: () => Promise<NextResponse>) {
+export function withSocialLogout(handler: () => Promise<NextResponse>) {
   return async () => {
     try {
       logger.log('API call started')
@@ -26,10 +32,10 @@ export function withBskyLogout(handler: () => Promise<NextResponse>) {
       throw error // Re-throw to maintain error handling
     } finally {
       try {
-        await bskyLogout()
-        logger.log('Bluesky logout completed')
+        await logoutFromSocials()
+        logger.log('Social logout completed')
       } catch (logoutError) {
-        logger.error('Failed to logout from Bluesky:', logoutError)
+        logger.error('Failed to logout from social accounts:', logoutError)
         // Don't throw here - we don't want logout errors to affect the main response
       }
     }
@@ -40,13 +46,13 @@ export function withBskyLogout(handler: () => Promise<NextResponse>) {
  * Wraps API route handlers with request parameter to automatically logout from Bluesky after each call
  *
  * Usage:
- * export const POST = withBskyLogoutForRequest(async (request: NextRequest) => {
+ * export const POST = withSocialLogoutForRequest(async (request: NextRequest) => {
  *   // your API logic here
  *   return NextResponse.json({ data: 'something' })
  * })
  */
-export function withBskyLogoutForRequest(
-  handler: (request: NextRequest) => Promise<NextResponse>
+export function withSocialLogoutForRequest(
+  handler: (request: NextRequest) => Promise<NextResponse>,
 ) {
   return async (request: NextRequest) => {
     try {
@@ -59,10 +65,10 @@ export function withBskyLogoutForRequest(
       throw error // Re-throw to maintain error handling
     } finally {
       try {
-        await bskyLogout()
-        logger.log('Bluesky logout completed')
+        await logoutFromSocials()
+        logger.log('Social logout completed')
       } catch (logoutError) {
-        logger.error('Failed to logout from Bluesky:', logoutError)
+        logger.error('Failed to logout from social accounts:', logoutError)
         // Don't throw here - we don't want logout errors to affect the main response
       }
     }
@@ -73,8 +79,8 @@ export function withBskyLogoutForRequest(
  * Wrapper that catches errors and returns error responses (no request parameter)
  * Use this if you want consistent error handling across all routes
  */
-export function withBskyLogoutAndErrorHandling(
-  handler: () => Promise<NextResponse>
+export function withSocialLogoutAndErrorHandling(
+  handler: () => Promise<NextResponse>,
 ) {
   return async () => {
     try {
@@ -92,14 +98,14 @@ export function withBskyLogoutAndErrorHandling(
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
         },
-        { status: 500 }
+        { status: 500 },
       )
     } finally {
       try {
-        await bskyLogout()
-        logger.log('Bluesky logout completed')
+        await logoutFromSocials()
+        logger.log('Social logout completed')
       } catch (logoutError) {
-        logger.error('Failed to logout from Bluesky:', logoutError)
+        logger.error('Failed to logout from social accounts:', logoutError)
       }
     }
   }
@@ -109,8 +115,8 @@ export function withBskyLogoutAndErrorHandling(
  * Wrapper that catches errors and returns error responses (with request parameter)
  * Use this if you want consistent error handling across all routes
  */
-export function withBskyLogoutAndErrorHandlingForRequest(
-  handler: (request: NextRequest) => Promise<NextResponse>
+export function withSocialLogoutAndErrorHandlingForRequest(
+  handler: (request: NextRequest) => Promise<NextResponse>,
 ) {
   return async (request: NextRequest) => {
     try {
@@ -128,25 +134,25 @@ export function withBskyLogoutAndErrorHandlingForRequest(
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
         },
-        { status: 500 }
+        { status: 500 },
       )
     } finally {
       try {
-        await bskyLogout()
-        logger.log('Bluesky logout completed')
+        await logoutFromSocials()
+        logger.log('Social logout completed')
       } catch (logoutError) {
-        logger.error('Failed to logout from Bluesky:', logoutError)
+        logger.error('Failed to logout from social accounts:', logoutError)
       }
     }
   }
 }
 
-export function withBskyLogoutWithId(
-  handler: (id: string, request: NextRequest) => Promise<Response>
+export function withSocialLogoutWithId(
+  handler: (id: string, request: NextRequest) => Promise<Response>,
 ) {
   return async (
     request: NextRequest,
-    { params }: { params: Promise<{ id?: string }> }
+    { params }: { params: Promise<{ id?: string }> },
   ) => {
     const { id } = await params
 
@@ -155,7 +161,7 @@ export function withBskyLogoutWithId(
         logger.error('ID parameter is missing')
         return NextResponse.json(
           { error: 'ID parameter is required' },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
@@ -173,14 +179,14 @@ export function withBskyLogoutWithId(
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
         },
-        { status: 500 }
+        { status: 500 },
       )
     } finally {
       try {
-        await bskyLogout()
-        logger.log('Bluesky logout completed')
+        await logoutFromSocials()
+        logger.log('Social logout completed')
       } catch (logoutError) {
-        logger.error('Failed to logout from Bluesky:', logoutError)
+        logger.error('Failed to logout from social accounts:', logoutError)
       }
     }
   }

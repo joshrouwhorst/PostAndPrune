@@ -1,4 +1,5 @@
 import * as appDataHelper from '@/app/api-helpers/appData'
+import type { Account } from '@/types/accounts'
 import type { Schedule, ScheduleFrequency } from '@/types/scheduler'
 import * as BackupService from '../BackupService'
 import { backupIfNeeded, postIfNeeded, pruneIfNeeded } from '../CronService'
@@ -78,6 +79,14 @@ describe('CronService.postIfNeeded', () => {
     getSchedules.mockResolvedValue([
       {
         id: 'schedule-1',
+        name: 'Test Schedule',
+        accounts: [
+          {
+            id: 'account-1',
+            name: 'Test Account',
+            platform: 'bluesky',
+          } as Account,
+        ],
         group: 'default',
         isActive: true,
         frequency: {
@@ -98,6 +107,15 @@ describe('CronService.postIfNeeded', () => {
     getSchedules.mockResolvedValue([
       {
         id: 'schedule-1',
+        name: 'Test Schedule',
+        accounts: [
+          {
+            id: 'account-1',
+            name: 'Test Account',
+            platform: 'bluesky',
+          } as Account,
+        ],
+        isActive: true,
         group: 'default',
         frequency: {
           type: 'interval',
@@ -119,6 +137,14 @@ describe('CronService.postIfNeeded', () => {
     getSchedules.mockResolvedValue([
       {
         id: 'schedule-1',
+        name: 'Test Schedule',
+        accounts: [
+          {
+            id: 'account-1',
+            name: 'Test Account',
+            platform: 'bluesky',
+          } as Account,
+        ],
         group: 'default',
         isActive: false,
         frequency: {
@@ -139,6 +165,14 @@ describe('CronService.postIfNeeded', () => {
     getSchedules.mockResolvedValue([
       {
         id: 'schedule-1',
+        name: 'Test Schedule',
+        accounts: [
+          {
+            id: 'account-1',
+            name: 'Test Account',
+            platform: 'bluesky',
+          } as Account,
+        ],
         group: 'default',
         isActive: true,
         startTime: new Date(now + 10 * 60 * 1000).toISOString(), // starts in 10 minutes
@@ -160,6 +194,14 @@ describe('CronService.postIfNeeded', () => {
     getSchedules.mockResolvedValue([
       {
         id: 'schedule-1',
+        name: 'Test Schedule',
+        accounts: [
+          {
+            id: 'account-1',
+            name: 'Test Account',
+            platform: 'bluesky',
+          } as Account,
+        ],
         group: 'default',
         isActive: true,
         endTime: new Date(now - 10 * 60 * 1000).toISOString(), // ended 10 minutes ago

@@ -19,13 +19,13 @@ interface SchedulesContextType {
   getScheduleLookups: (scheduleId: string) => Promise<ScheduleLookups | null>
   reorderSchedulePosts: (
     scheduleId: string,
-    newOrder: string[]
+    newOrder: string[],
   ) => Promise<void>
 }
 
 // Create the context
 const ScheduleContext = createContext<SchedulesContextType | undefined>(
-  undefined
+  undefined,
 )
 
 interface ScheduleProviderProps {

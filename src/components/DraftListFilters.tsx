@@ -1,9 +1,8 @@
 'use client'
-import React from 'react'
 import { useDraftContext } from '@/providers/DraftsProvider'
+import { X } from 'lucide-react'
 import { GroupSelect } from './GroupSelect'
 import { Button, Input } from './ui/forms'
-import { X } from 'lucide-react'
 
 export default function DraftListFilters() {
   const { filters, addFilter, removeFilter, clearFilters } = useDraftContext()

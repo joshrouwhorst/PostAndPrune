@@ -1,66 +1,20 @@
 #!/usr/bin/env node
-const { spawn } = require('node:child_process')
-const fs = require('node:fs')
-const path = require('node:path')
+import { spawn } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+import {
+  getAllMigrationFilenames,
+  getMigrationByFilename,
+} from './migrations/index.js'
+import {
+  type AppInfo,
+  MigrationService,
+} from './src/app/api/services/MigrationService'
 
 console.log('Starting BskyBackup application...')
 
-const MIGRATIONS_DIR = path.join(process.cwd(), 'migrations')
 const APP_INFO_PATH = path.join(process.cwd(), '.migrations.json')
 const PACKAGE_JSON_PATH = path.join(process.cwd(), 'package.json')
-
-class MigrationService {
-  constructor(app) {
-    this.app = app
-  }
-
-  needToMigrate() {
-    return !!this.app.previousVersion
-  }
-
-  isPreviousVersionLessThan(version) {
-    return this.compareVersions(this.app.previousVersion, version) === -1
-  }
-
-  isPreviousVersionGreaterThan(version) {
-    return this.compareVersions(this.app.previousVersion, version) === 1
-  }
-
-  isVersionLessThan(version) {
-    return this.compareVersions(this.app.version, version) === -1
-  }
-
-  isVersionGreaterThan(version) {
-    return this.compareVersions(this.app.version, version) === 1
-  }
-
-  /**
-   * Compare two semantic version strings.
-   * Returns -1 if second < first, 0 if equal, 1 if second > first.
-   */
-  compareVersions(first, second) {
-    const toNums = (v) =>
-      String(v)
-        .trim()
-        .split('.')
-        .map((part) => {
-          const m = part.match(/^(\d+)/)
-          return m ? parseInt(m[1], 10) : 0
-        })
-
-    const a = toNums(first)
-    const b = toNums(second)
-    const len = Math.max(a.length, b.length)
-
-    for (let i = 0; i < len; i++) {
-      const ai = a[i] ?? 0
-      const bi = b[i] ?? 0
-      if (bi > ai) return 1
-      if (bi < ai) return -1
-    }
-    return 0
-  }
-}
 
 // Wait for server to be ready by checking port
 async function waitForServer(port = 3000, maxAttempts = 30) {
@@ -73,7 +27,7 @@ async function waitForServer(port = 3000, maxAttempts = 30) {
         socket.setTimeout(1000)
         socket.on('connect', () => {
           socket.destroy()
-          resolve()
+          resolve(true)
         })
         socket.on('timeout', () => {
           socket.destroy()
@@ -113,8 +67,12 @@ async function makeInitialFetch() {
     } else {
       console.log('⚠️ Init failed:', response.status)
     }
-  } catch (error) {
-    console.error('❌ Initial fetch failed:', error.message)
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('❌ Initial fetch failed:', error.message)
+    } else {
+      console.error('❌ Initial fetch failed:', error)
+    }
   }
 }
 
@@ -130,7 +88,7 @@ async function signalStop() {
       'http://localhost:3000/api/util?action=shutdown',
       {
         method: 'POST',
-      }
+      },
     )
 
     if (response.ok) {
@@ -138,8 +96,12 @@ async function signalStop() {
     } else {
       console.log('⚠️ Stop signal failed:', response.status)
     }
-  } catch (error) {
-    console.error('❌ Stop signal failed:', error.message)
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('❌ Stop signal failed:', error.message)
+    } else {
+      console.error('❌ Stop signal failed:', error)
+    }
   }
 }
 
@@ -165,6 +127,7 @@ async function openAppInfo() {
     // Add version if missing, this is the project's initial setup
     if (!app.version) {
       app.version = packageInfo.version
+      app.previousVersion = packageInfo.version
       fs.writeFileSync(APP_INFO_PATH, JSON.stringify(app, null, 2))
     }
 
@@ -176,36 +139,52 @@ async function openAppInfo() {
     }
 
     return app
-  } catch (error) {
-    console.error('❌ Could not find .migrations.json:', error.message)
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('❌ Could not find .migrations.json:', error.message)
+    } else {
+      console.error('❌ Could not find .migrations.json:', error)
+    }
     return
   }
 }
 
 // Save metadata to .migrations.json
-async function saveAppInfo(app) {
+async function saveAppInfo(app: AppInfo) {
   try {
     fs.writeFileSync(APP_INFO_PATH, JSON.stringify(app, null, 2))
-  } catch (error) {
-    console.error('❌ Could not save .migrations.json:', error.message)
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('❌ Could not save .migrations.json:', error.message)
+    } else {
+      console.error('❌ Could not save .migrations.json:', error)
+    }
   }
 }
 
-async function runMigrations(app) {
+async function runMigrations(app: AppInfo) {
   const previousMigrations = app.migrations || []
-  const migrationDir = fs.readdirSync(MIGRATIONS_DIR)
-  const migrations = migrationDir.filter((file) => file.endsWith('.js')).sort()
+  const migrations = getAllMigrationFilenames()
+
   const service = new MigrationService(app)
 
   for (const migrationFile of migrations) {
     if (previousMigrations.includes(migrationFile)) {
+      console.log(`➡️ Skipping already applied migration: ${migrationFile}`)
       continue // Skip already applied migrations
     }
 
     console.log(`➡️ Running migration: ${migrationFile}`)
-    const migrationPath = path.join(MIGRATIONS_DIR, migrationFile)
     try {
-      const migration = require(migrationPath)
+      const migration = await getMigrationByFilename(migrationFile)
+      // Handle both default export and named exports
+      if (!migration) {
+        console.warn(
+          `⚠️ Migration ${migrationFile} does not export a valid module`,
+        )
+        continue
+      }
+
       if (typeof migration.up === 'function') {
         await migration.up(service)
         console.log(`✅ Migration ${migrationFile} applied successfully`)
@@ -214,11 +193,15 @@ async function runMigrations(app) {
         await saveAppInfo(app)
       } else {
         console.warn(
-          `⚠️ Migration ${migrationFile} does not export an 'up' function`
+          `⚠️ Migration ${migrationFile} does not export an 'up' function`,
         )
       }
-    } catch (error) {
-      console.error(`❌ Migration ${migrationFile} failed:`, error)
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`❌ Migration ${migrationFile} failed:`, error.message)
+      } else {
+        console.error(`❌ Migration ${migrationFile} failed:`, error)
+      }
       throw error // Stop further migrations on failure
     }
   }
@@ -245,7 +228,7 @@ async function start() {
   let serverReady = false
 
   // Listen for stdout to detect when server is ready
-  server.stdout.on('data', (data) => {
+  server.stdout.on('data', (data: Buffer) => {
     const output = data.toString()
     process.stdout.write(output) // Still show the output
 

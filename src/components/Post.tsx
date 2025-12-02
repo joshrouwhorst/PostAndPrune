@@ -1,33 +1,32 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: see code */
 'use client'
 
-import React from 'react'
+import { useDraftContext } from '@/providers/DraftsProvider'
+import { useModal } from '@/providers/ModalProvider'
+import { transformDraftToDisplayData } from '@/transformers/transformDraftToDisplayData'
+import { transformPostDataToDisplayData } from '@/transformers/transformPostDataToDisplayData'
 import type { PostData } from '@/types/bsky'
 import type { DraftPost } from '@/types/drafts'
+import type { PostDisplayData } from '@/types/types'
 import {
+  CloudUpload,
+  Copy,
+  CopyPlus,
+  Edit,
+  Folder,
+  FolderPen,
   Heart,
   MessageCircle,
   Repeat2,
-  Copy,
   Reply,
-  Edit,
   Trash,
-  Folder,
-  CopyPlus,
-  CloudUpload,
-  FolderPen,
 } from 'lucide-react'
-import type { PostDisplayData } from '@/types/types'
-import PostMediaCarousel from './PostMediaCarousel'
-import { Button, LinkButton } from './ui/forms'
-import { useDraftContext } from '@/providers/DraftsProvider'
 import Image from 'next/image'
+import React from 'react'
+import AccountSelector from './AccountSelector'
+import PostMediaCarousel from './PostMediaCarousel'
 import PostVideoPlayer from './PostVideoPlayer'
-import {
-  getDisplayDataFromPostData,
-  getDisplayDataFromDraft,
-} from '@/helpers/utils'
-import { useSettingsContext } from '@/providers/SettingsProvider'
+import { Button, LinkButton } from './ui/forms'
 
 interface PostProps {
   variant?: 'full' | 'compact'
@@ -48,18 +47,18 @@ export default function Post({
 }: PostProps) {
   const { deleteDraft, duplicateDraft, refresh, publishDraft } =
     useDraftContext()
-  const { settings } = useSettingsContext()
+  const { openModal, closeModal } = useModal()
 
   if (!variant) variant = 'full'
 
   // Handle conversions
   if (!displayData && postData) {
-    displayData = getDisplayDataFromPostData(postData)
+    displayData = transformPostDataToDisplayData(postData)
   } else if (!displayData && draftPost) {
-    displayData = getDisplayDataFromDraft(
+    displayData = transformDraftToDisplayData(
       draftPost,
-      settings?.bskyDisplayName || 'Display Name',
-      settings?.bskyIdentifier || '@identifier'
+      null, // TODO: Figure out a default display name or get it from settings
+      null,
     )
   }
 
@@ -126,6 +125,78 @@ export default function Post({
     }
   }
 
+  const handlePublishDraft = async (post: PostDisplayData) => {
+    if (!post.draftId) return
+
+    let modalId: string
+
+    const PublishModal = () => {
+      const [selectedAccountIds, setSelectedAccountIds] = React.useState<
+        string[]
+      >([])
+
+      return (
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-300">
+            Choose which accounts you want to publish this draft to:
+          </p>
+
+          <AccountSelector
+            multiple={true}
+            selectedAccountIds={selectedAccountIds}
+            onChange={({ accounts }) => {
+              if (accounts) {
+                setSelectedAccountIds(accounts.map((account) => account.id))
+              } else {
+                setSelectedAccountIds([])
+              }
+            }}
+          />
+
+          <div className="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              onClick={() => closeModal(modalId)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={async () => {
+                if (selectedAccountIds.length === 0) {
+                  alert('Please select at least one account to publish to.')
+                  return
+                }
+
+                try {
+                  if (post.draftId) {
+                    await publishDraft(post.draftId, selectedAccountIds)
+                    closeModal(modalId)
+                    await refresh()
+                  }
+                } catch (error) {
+                  console.error('Failed to publish draft:', error)
+                  alert('Failed to publish draft. Please try again.')
+                }
+              }}
+              disabled={selectedAccountIds.length === 0}
+            >
+              Publish to {selectedAccountIds.length} account
+              {selectedAccountIds.length !== 1 ? 's' : ''}
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    modalId = openModal({
+      title: 'Select Accounts to Publish To',
+      children: <PublishModal />,
+    })
+  }
+
   const handleDeleteDraft = async (post: PostDisplayData) => {
     if (
       post.draftId &&
@@ -171,15 +242,15 @@ export default function Post({
                 <Folder className="w-3 h-3" /> {displayData.group}
               </span>
             )}
-            {displayData.indexedAt && (
+            {displayData.createdAt && (
               <span className="text-gray-400 text-xs ml-auto">
-                {new Date(displayData.indexedAt).toLocaleDateString()}
+                {new Date(displayData.createdAt).toLocaleDateString()}
               </span>
             )}
           </div>
           <div className="text-sm text-gray-900 dark:text-gray-100 mt-1 line-clamp-2 break-words">
             {displayData.text.length > 120
-              ? displayData.text.slice(0, 120) + '…'
+              ? `${displayData.text.slice(0, 120)}…`
               : displayData.text}
             {displayData.images && displayData.images.length > 0 && (
               <div className="mt-2 relative flex flex-row gap-1">
@@ -226,14 +297,20 @@ export default function Post({
     return (
       <div className="p-4 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 shadow-md text-black dark:text-white">
         <div className="flex flex-row items-center justify-between mb-2">
+          {/* TODO: Figure out what to show for display name on drafts */}
           {/* Name and handle */}
           <div className="flex flex-col md:flex-row md:items-center md:gap-2">
-            <span className="font-semibold">
-              {displayData.author?.displayName || displayData.author?.handle}
-            </span>
-            <span className="text-gray-500 text-sm">
-              @{displayData.author?.handle}
-            </span>
+            {(displayData.author?.displayName ||
+              displayData.author?.handle) && (
+              <span className="font-semibold">
+                {displayData.author?.displayName || displayData.author?.handle}
+              </span>
+            )}
+            {displayData.author?.handle && (
+              <span className="text-gray-500 text-sm">
+                @{displayData.author.handle}
+              </span>
+            )}
             {displayData.parent && (
               <span className="text-blue-500 text-sm">
                 <Reply className="w-4 h-4" /> Reply
@@ -252,15 +329,7 @@ export default function Post({
               <Button
                 variant="icon"
                 color="tertiary"
-                onClick={async () => {
-                  if (
-                    displayData.draftId &&
-                    confirm('Are you sure you want to publish this draft?')
-                  ) {
-                    await publishDraft(displayData.draftId)
-                    await refresh()
-                  }
-                }}
+                onClick={() => handlePublishDraft(displayData)}
                 title="Publish post"
               >
                 <CloudUpload className="w-4 h-4" />
@@ -311,7 +380,7 @@ export default function Post({
 
           {/* Timestamp */}
           <span className="text-gray-500 text-sm ml-1">
-            {new Date(displayData.indexedAt).toLocaleDateString()}
+            {new Date(displayData.createdAt).toLocaleDateString()}
           </span>
         </div>
         <ReplyParents parent={displayData.parent} root={displayData.root} />
@@ -381,10 +450,13 @@ function ReplyParents({ parent, root }: ReplyParentsProps) {
     <div className="border-l-4 border-blue-500 pl-4 ml-2 mb-2">
       {root && (
         <div className="mb-2">
-          <span className="text-gray-500 text-sm">
-            Root post by{' '}
-            <span className="text-blue-500">@{root.author?.handle}</span>
-          </span>
+          {root.author?.handle && (
+            <span className="text-gray-500 text-sm">
+              Root post by{' '}
+              <span className="text-blue-500">@{root.author?.handle}</span>
+            </span>
+          )}
+
           <div className="text-gray-600 dark:text-gray-400 text-sm mt-1 italic">
             "{root?.text || ''}"
           </div>
@@ -392,10 +464,12 @@ function ReplyParents({ parent, root }: ReplyParentsProps) {
       )}
       {parent && (
         <div className="mb-2">
-          <span className="text-gray-500 text-sm">
-            Parent post by{' '}
-            <span className="text-blue-500">@{parent.author?.handle}</span>
-          </span>
+          {parent.author?.handle && (
+            <span className="text-gray-500 text-sm">
+              Parent post by{' '}
+              <span className="text-blue-500">@{parent.author?.handle}</span>
+            </span>
+          )}
           <div className="text-gray-600 dark:text-gray-400 text-sm mt-1 italic">
             "{parent.text || ''}"
           </div>

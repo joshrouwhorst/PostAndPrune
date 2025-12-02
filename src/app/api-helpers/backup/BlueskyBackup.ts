@@ -1,29 +1,56 @@
-import path from 'path'
-import type { FeedViewPost } from '@/types/bsky'
-import { saveBlobToFile } from './bluesky'
-import { saveJsonToFile, readJsonFromFile, downloadFile } from './utils'
+import Logger from '@/app/api-helpers/logger'
+import {
+  downloadFile,
+  readJsonFromFile,
+  saveJsonToFile,
+} from '@/app/api-helpers/utils'
+import { checkIfExists } from '@/app/api/services/FileService'
 import { getPaths } from '@/config/main'
-import Logger from './logger'
-import { checkIfExists } from '../api/services/FileService'
+import type { Account } from '@/types/accounts'
+import type { FeedViewPost, PostData } from '@/types/bsky'
 import type { AppBskyEmbedImages, AppBskyEmbedVideo } from '@atproto/api'
-import { Governor } from './governor'
+import type * as AppBskyFeedPost from '@atproto/api/src/client/types/app/bsky/feed/post'
+import path from 'node:path'
+import { transformFeedViewPostToPostData } from '../../../transformers/transformFeedViewPostToPostData'
+import { saveBlobToFile } from '../auth/BlueskyAuth'
+import { Governor } from '../governor'
 
-const logger = new Logger('BackupFile')
 const governor = new Governor(500)
 
-export async function openBackup(): Promise<FeedViewPost[]> {
-  // Ensure backup directory exists
-  const { postBackupFile } = await getPaths()
+const logger = new Logger('BskyBackup')
+
+export async function openBackup(accountId: string): Promise<PostData[]> {
   try {
-    return (await readJsonFromFile<FeedViewPost[]>(postBackupFile)) || []
+    const feedViewPosts = await openBackupAsFeedViewPosts(accountId)
+    return feedViewPosts.map((p) =>
+      transformFeedViewPostToPostData(p, accountId),
+    )
   } catch (error) {
-    logger.error(`Error reading backup file ${postBackupFile}:`, error)
+    logger.error(`Error transforming backup for ${accountId}:`, error)
     return []
   }
 }
 
-export async function saveBackup(data: FeedViewPost[]): Promise<void> {
-  const { postBackupFile } = await getPaths()
+export async function openBackupAsFeedViewPosts(
+  accountId: string,
+): Promise<FeedViewPost[]> {
+  // Ensure backup directory exists
+  const { backupPath } = await getPaths()
+  const backupFile = path.join(backupPath, accountId, `posts.json`)
+  try {
+    return (await readJsonFromFile<FeedViewPost[]>(backupFile)) || []
+  } catch (error) {
+    logger.error(`Error reading backup file ${backupFile}:`, error)
+    return []
+  }
+}
+
+export async function saveBackup(
+  accountId: string,
+  data: FeedViewPost[],
+): Promise<void> {
+  const { backupPath } = await getPaths()
+  const backupFile = path.join(backupPath, accountId, `posts.json`)
   // Sort newest to oldest
   data.sort((a, b) => {
     return (
@@ -32,18 +59,26 @@ export async function saveBackup(data: FeedViewPost[]): Promise<void> {
     )
   })
 
-  await saveJsonToFile(data, postBackupFile)
+  await saveJsonToFile(data, backupFile)
 }
 
 export async function backupMediaFiles(
-  feedViewPost: FeedViewPost
+  account: Account,
+  feedViewPost: FeedViewPost,
 ): Promise<number> {
   const post = feedViewPost.post
-  const record = post.record
+  const record = post.record as AppBskyFeedPost.Record
+
+  if (
+    post.cid === 'bafyreia672shun4ikmf44mv74j54basoth3xnfljxz6j5ukhpkuy3mq5zm'
+  ) {
+    console.log('Debug break')
+  }
 
   if (post.embed && post.embed.$type === 'app.bsky.embed.images#view') {
     let _fileWriteCount = 0
     const embed = post.embed as AppBskyEmbedImages.View
+
     if (!embed.images || embed.images.length === 0) {
       return 0
     }
@@ -52,12 +87,13 @@ export async function backupMediaFiles(
       const imageUrl = image.fullsize
       // Extract file extension from the URL after @ symbol, or default to .jpg
       const mediaType = getMediaType(imageUrl)
-      const postDate = new Date(post.indexedAt)
+      const postDate = new Date(record.createdAt)
       const year = postDate.getFullYear().toString()
-      const mediaLocation = await getMediaLocation(
+      const mediaLocation = getMediaLocation(
+        account.id,
         getMediaName(post, mediaType, i),
         year,
-        mediaType
+        mediaType,
       )
 
       try {
@@ -73,7 +109,7 @@ export async function backupMediaFiles(
       } catch (err) {
         logger.error(
           `Error downloading image ${imageUrl} to ${mediaLocation}:`,
-          err
+          err,
         )
       }
     }
@@ -94,10 +130,11 @@ export async function backupMediaFiles(
   }
 
   const write = await saveBlobData(
+    account,
     embed.video,
     `video-${post.cid}`,
     embedView.cid,
-    post.author.did
+    post.author.did,
   )
 
   if (write) return 1
@@ -119,51 +156,35 @@ export function getMediaExtension(imageUrl: string): string {
   return mediaType
 }
 
-export async function getMediaLocation(
+export function getMediaLocation(
+  accountId: string,
   mediaName: string,
   year: string,
-  mediaType: string
+  mediaType: string,
 ) {
-  const { backupMediaPath } = await getPaths()
-  return path.join(backupMediaPath, year, mediaType, mediaName)
+  const { backupPath } = getPaths()
+  return path.join(backupPath, accountId, 'media', year, mediaType, mediaName)
 }
 
 export function getMediaApiUrl(
+  accountId: string,
   mediaName: string,
   year: string,
-  mediaType: string
+  mediaType: string,
 ) {
-  return path.join('/api/images', year, mediaType, mediaName)
+  return path.join('/api/media', accountId, 'media', year, mediaType, mediaName)
 }
 
 export function getMediaName(
   post: FeedViewPost['post'],
   extension: string,
-  index: number
+  index: number,
 ): string {
   // Extract file extension from the URL after @ symbol, or default to .jpg
   const mediaExtension = extension ? `.${extension}` : '.jpg'
   const postId = post.cid
-  const mediaFilename = `${postId}_${index}${mediaExtension}`
-  return mediaFilename
-}
 
-export function getMediaNameOld(
-  post: FeedViewPost['post'],
-  mediaType: string,
-  index: number
-): string {
-  // Extract file extension from the URL after @ symbol, or default to .jpg
-  const mediaExtension = mediaType ? `.${mediaType}` : '.jpg'
-  const postDate = new Date(post.indexedAt)
-  const year = postDate.getFullYear()
-  const month = String(postDate.getMonth() + 1).padStart(2, '0')
-  const day = String(postDate.getDate()).padStart(2, '0')
-  const hour = String(postDate.getHours()).padStart(2, '0')
-  const minute = String(postDate.getMinutes()).padStart(2, '0')
-  const second = String(postDate.getSeconds()).padStart(2, '0')
-  const dateString = `${year}${month}${day}_${hour}${minute}${second}`
-  const mediaFilename = `${dateString}_${mediaType}_${index}${mediaExtension}`
+  const mediaFilename = `${postId}_${index}${mediaExtension}`
   return mediaFilename
 }
 
@@ -181,6 +202,7 @@ export function getMediaNameOld(
  * const success = await saveBlobData(videoBlob, 'my-video.mp4', 'did:plc:example123')
  */
 export async function saveBlobData(
+  account: Account,
   mediaBlob: {
     ref: {
       bytes?: Uint8Array
@@ -191,7 +213,7 @@ export async function saveBlobData(
   },
   filename: string,
   cid: string,
-  userDid: string
+  userDid: string,
 ): Promise<boolean> {
   try {
     // Get the media extension from mime type
@@ -205,14 +227,19 @@ export async function saveBlobData(
     // Get media storage location
     const postDate = new Date()
     const year = postDate.getFullYear().toString()
-    const mediaLocation = await getMediaLocation(fullFilename, year, extension)
+    const mediaLocation = getMediaLocation(
+      account.id,
+      fullFilename,
+      year,
+      extension,
+    )
 
     // If the file already exists, skip saving
     const fileExists = await checkIfExists(mediaLocation)
     if (fileExists) return false
 
     // Use the blob save function from bluesky.ts
-    const success = await saveBlobToFile(cid, mediaLocation, userDid)
+    const success = await saveBlobToFile(account, cid, mediaLocation, userDid)
 
     if (success) {
       const mediaType = mediaBlob.mimeType.startsWith('video/')

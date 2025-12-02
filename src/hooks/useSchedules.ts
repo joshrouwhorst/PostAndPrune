@@ -17,7 +17,7 @@ interface SchedulesHookContext {
   getScheduleLookups: (scheduleId: string) => Promise<ScheduleLookups | null>
   reorderSchedulePosts: (
     scheduleId: string,
-    draftPostIds: string[]
+    draftPostIds: string[],
   ) => Promise<void>
 }
 
@@ -132,7 +132,7 @@ export function useSchedules(): SchedulesHookContext {
       const data: ScheduleLookups | null = await response.json()
       return data
     },
-    []
+    [],
   )
 
   const reorderSchedulePosts = useCallback(
@@ -156,7 +156,7 @@ export function useSchedules(): SchedulesHookContext {
         if (schedule) {
           schedule.postOrder = draftPostIds
           setSchedules((prev) =>
-            prev.map((s) => (s.id === schedule.id ? schedule : s))
+            prev.map((s) => (s.id === schedule.id ? schedule : s)),
           )
         }
       } catch (error) {
@@ -166,7 +166,7 @@ export function useSchedules(): SchedulesHookContext {
         setLoading(false)
       }
     },
-    [schedules]
+    [schedules],
   )
 
   const refresh = useCallback(async () => {

@@ -1,37 +1,35 @@
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
-"use client";
+/** biome-ignore-all lint/suspicious/noArrayIndexKey: see code */
+'use client'
 
-import { EmbedImageView, EmbedView } from "../types/bsky";
-import React from "react";
-import Image from "next/image";
-import { useState } from "react";
-import { PostMedia } from "@/types/types";
-import { Button } from "./ui/forms";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import type { PostMedia } from '@/types/types'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
+import Image from 'next/image'
+import { useState } from 'react'
+import { Button } from './ui/forms'
 
 interface PostMediaCarouselProps {
-  media?: PostMedia[] | undefined;
+  media?: PostMedia[] | undefined
 }
 
 export default function PostMediaCarousel({ media }: PostMediaCarouselProps) {
-  const [imageIndex, setImageIndex] = useState(0);
+  const [imageIndex, setImageIndex] = useState(0)
   if (!media || media.length === 0) {
-    return null;
+    return null
   }
 
   if (media.length === 1) {
-    const image = media[0];
+    const image = media[0]
     return (
       <div
         className="w-full my-2"
         style={{
-          position: "relative",
+          position: 'relative',
           aspectRatio: `${image.width} / ${image.height}`,
         }}
       >
         <Image
           src={image.url}
-          alt={"Embedded image"}
+          alt={'Embedded image'}
           className="w-full h-auto rounded"
           fill
           sizes="100vw"
@@ -39,7 +37,7 @@ export default function PostMediaCarousel({ media }: PostMediaCarouselProps) {
           decoding="async"
         />
       </div>
-    );
+    )
   }
 
   return (
@@ -53,7 +51,7 @@ export default function PostMediaCarousel({ media }: PostMediaCarouselProps) {
         >
           <Image
             src={media[imageIndex].url}
-            alt={"Embedded image"}
+            alt={'Embedded image'}
             fill
             sizes="100vw"
             className="rounded object-cover"
@@ -92,11 +90,11 @@ export default function PostMediaCarousel({ media }: PostMediaCarouselProps) {
             key={index}
             onClick={() => setImageIndex(index)}
             className={`w-2 h-2 rounded-full ${
-              index === imageIndex ? "bg-blue-500" : "bg-gray-300"
+              index === imageIndex ? 'bg-blue-500' : 'bg-gray-300'
             }`}
           />
         ))}
       </div>
     </div>
-  );
+  )
 }

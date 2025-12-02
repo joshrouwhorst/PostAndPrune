@@ -3,7 +3,7 @@ export type MediaKind = 'image' | 'video'
 
 export type DraftMediaFileInput = {
   filename: string // original filename (used for extension)
-  data: Buffer // file contents
+  data: Buffer | Uint8Array // file contents (Buffer for server, Uint8Array for client)
   kind: MediaKind
   mime?: string // optional mime type
 }

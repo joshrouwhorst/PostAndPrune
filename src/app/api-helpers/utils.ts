@@ -1,9 +1,9 @@
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 
 export async function saveJsonToFile(
-  data: any,
-  filePath: string
+  data: string | object,
+  filePath: string,
 ): Promise<void> {
   // Ensure the directory exists
   const dir = path.dirname(filePath)
@@ -48,16 +48,25 @@ export async function downloadFile({
         fs.mkdirSync(dir, { recursive: true })
       }
 
-      // Only download if file doesn't exist
-      if (!overwrite && !fs.existsSync(filePath)) {
+      const fileExists = fs.existsSync(filePath)
+
+      // Only download if file doesn't exist or overwrite is true
+      if (!fileExists || overwrite) {
         const response = await fetch(url)
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer()
           const buffer = Buffer.from(arrayBuffer)
           fs.writeFileSync(filePath, buffer)
           return true
+        } else {
+          throw new Error(
+            `Failed to download file: ${response.status} ${
+              response.statusText
+            }. Response: ${await response.text()}`,
+          )
         }
       }
+
       return false
     } catch (error) {
       console.error(`Error downloading file from ${url}:`, error)

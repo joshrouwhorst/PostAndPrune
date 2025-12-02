@@ -158,7 +158,7 @@ function DragDropListRoot({
 
   const mouseDropPosition = (
     index: number,
-    event: React.DragEvent
+    event: React.DragEvent,
   ): 'top' | 'bottom' => {
     const el = itemsRef.current[index]
     if (!el) return 'bottom'
@@ -205,7 +205,7 @@ function DragDropListRoot({
                   !dragState.isDragging,
                 // 'border-t-4': isTop,
                 // 'border-b-4': isBottom,
-              }
+              },
             )}
             style={{
               // Add some visual spacing when dragging over

@@ -1,18 +1,18 @@
-import type {
-  ScheduleFrequency,
-  Schedule,
-  CreateScheduleRequest,
-} from '@/types/scheduler'
 import * as appDataHelpers from '@/app/api-helpers/appData'
+import type { Account } from '@/types/accounts'
+import type {
+  CreateScheduleRequest,
+  Schedule,
+  ScheduleFrequency,
+} from '@/types/scheduler'
 import * as draftPostService from '../DraftPostService'
-
 import {
-  getNextTriggerTimes,
   createSchedule,
-  updateSchedule,
   deleteSchedule,
+  getNextTriggerTimes,
   getSchedules,
   publishNextPost,
+  updateSchedule,
 } from '../SchedulePostService'
 
 jest.mock('@/config/main', () => ({
@@ -105,9 +105,26 @@ describe('getNextTriggerTimes', () => {
 })
 
 describe('Schedule CRUD', () => {
+  const mockAccount: Account = {
+    id: 'account1',
+    name: 'Bluesky Account',
+    platform: 'bluesky',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    credentials: {
+      bluesky: {
+        identifier: 'user123',
+        password: 'password123',
+      },
+    },
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
     ;(appDataHelpers.getAppData as jest.Mock).mockResolvedValue({
+      settings: {
+        accounts: [mockAccount],
+      },
       schedules: [],
     })
     ;(appDataHelpers.saveAppData as jest.Mock).mockResolvedValue(undefined)
@@ -122,8 +139,9 @@ describe('Schedule CRUD', () => {
         timesOfDay: ['08:00'],
         timeZone: 'UTC',
       },
-      platforms: ['bluesky'],
+      accountIds: [mockAccount.id],
     }
+
     const schedule = await createSchedule(req)
     expect(schedule.name).toBe('Test')
     expect(appDataHelpers.saveAppData).toHaveBeenCalled()
@@ -140,7 +158,7 @@ describe('Schedule CRUD', () => {
       },
       isActive: true,
       createdAt: new Date().toISOString(),
-      platforms: ['bluesky'],
+      accounts: [mockAccount],
       group: 'default',
     }
     ;(appDataHelpers.getAppData as jest.Mock).mockResolvedValue({
@@ -162,7 +180,7 @@ describe('Schedule CRUD', () => {
       },
       isActive: true,
       createdAt: new Date().toISOString(),
-      platforms: ['bluesky'],
+      accounts: [mockAccount],
       group: 'default',
     }
     ;(appDataHelpers.getAppData as jest.Mock).mockResolvedValue({
@@ -183,6 +201,19 @@ describe('Schedule CRUD', () => {
 
 describe('publishNextPost', () => {
   it('should publish next post and update schedule', async () => {
+    const mockAccount: Account = {
+      id: 'account1',
+      name: 'Bluesky Account',
+      platform: 'bluesky',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      credentials: {
+        bluesky: {
+          identifier: 'user123',
+          password: 'password123',
+        },
+      },
+    }
     const schedule: Schedule = {
       id: 'schedule-1',
       name: 'Test',
@@ -193,7 +224,7 @@ describe('publishNextPost', () => {
       },
       isActive: true,
       createdAt: new Date().toISOString(),
-      platforms: ['bluesky'],
+      accounts: [mockAccount],
       group: 'group1',
     }
     ;(appDataHelpers.getAppData as jest.Mock).mockResolvedValue({
@@ -203,16 +234,30 @@ describe('publishNextPost', () => {
       { meta: { directoryName: 'post1', priority: 1 }, group: 'group1' },
     ])
     ;(draftPostService.publishDraftPost as jest.Mock).mockResolvedValue(
-      undefined
+      undefined,
     )
     await publishNextPost('schedule-1')
     expect(appDataHelpers.saveAppData).toHaveBeenCalled()
-    expect(draftPostService.publishDraftPost).toHaveBeenCalledWith('post1', [
-      'bluesky',
-    ])
+    expect(draftPostService.publishDraftPost).toHaveBeenCalledWith({
+      id: 'post1',
+      accounts: [mockAccount],
+    })
   })
 
   it('should publish next post according to what getDraftPostsInSchedule returns', async () => {
+    const mockAccount: Account = {
+      id: 'account1',
+      name: 'Bluesky Account',
+      platform: 'bluesky',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      credentials: {
+        bluesky: {
+          identifier: 'user123',
+          password: 'password123',
+        },
+      },
+    }
     const schedule: Schedule = {
       id: 'schedule-1',
       name: 'Test',
@@ -223,7 +268,7 @@ describe('publishNextPost', () => {
       },
       isActive: true,
       createdAt: new Date().toISOString(),
-      platforms: ['bluesky'],
+      accounts: [mockAccount],
       group: 'group1',
     }
     ;(appDataHelpers.getAppData as jest.Mock).mockResolvedValue({
@@ -237,13 +282,14 @@ describe('publishNextPost', () => {
       { meta: { directoryName: 'post5' }, group: 'group1' },
     ])
     ;(draftPostService.publishDraftPost as jest.Mock).mockResolvedValue(
-      undefined
+      undefined,
     )
     await publishNextPost('schedule-1')
     expect(appDataHelpers.saveAppData).toHaveBeenCalled()
-    expect(draftPostService.publishDraftPost).toHaveBeenCalledWith('post1', [
-      'bluesky',
-    ])
+    expect(draftPostService.publishDraftPost).toHaveBeenCalledWith({
+      id: 'post1',
+      accounts: [mockAccount],
+    })
   })
 })
 

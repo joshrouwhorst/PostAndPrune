@@ -1,5 +1,5 @@
-import { dirname, resolve } from 'path'
-import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const SRC_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
@@ -7,6 +7,7 @@ export const DATA_LOCATION =
   process.env.DEFAULT_DATA_LOCATION || `${SRC_DIR}/data`
 
 export const APP_DATA_FILE = `${DATA_LOCATION}/app-data/app-data`
+export const CREDENTIALS_FILE = `${DATA_LOCATION}/app-data/credentials`
 export const LOGS_PATH = `${DATA_LOCATION}/logs`
 
 // If true, prevents posting to Bluesky (for testing purposes)
@@ -27,7 +28,7 @@ const APP_DATA_ENCRYPTION_KEY =
   process.env.APP_DATA_ENCRYPTION_KEY || 'd3fAul7_5ecret_k3y_32bytes!' // Must be 32 bytes
 export const ENCRYPTION_KEY = APP_DATA_ENCRYPTION_KEY?.padEnd(32, '0').slice(
   0,
-  32
+  32,
 ) // Must be 32 bytes
 
 export const DEFAULT_PRUNE_MONTHS = process.env.DEFAULT_PRUNE_MONTHS || 3
@@ -35,7 +36,7 @@ export const DEFAULT_PRUNE_MONTHS = process.env.DEFAULT_PRUNE_MONTHS || 3
 export const DEFAULT_GROUP = 'default' // in all config files
 export const DEFAULT_POST_SLUG = 'draft'
 
-export const MINIMUM_MINUTES_BETWEEN_BACKUPS = 0 // TODO: Reset to 5 when testing is done
+export const MINIMUM_MINUTES_BETWEEN_BACKUPS = 1 // TODO: Set back to 5 after testing
 
 export const DRAFT_MEDIA_ENDPOINT = '/api/drafts/media'
 export const BACKUP_MEDIA_ENDPOINT = '/api/backup/images'

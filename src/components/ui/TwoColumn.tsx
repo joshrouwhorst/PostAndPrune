@@ -71,7 +71,7 @@ export default function TwoColumn({
       className={clsx(
         'w-full flex justify-center gap-4 items-baseline',
         stackClasses,
-        reverseStack ? 'flex-col-reverse' : 'flex-col'
+        reverseStack ? 'flex-col-reverse' : 'flex-col',
       )}
     >
       {setChildProps(children)}

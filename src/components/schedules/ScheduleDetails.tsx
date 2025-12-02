@@ -1,6 +1,10 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed for schedule.id, only going to get called if it exists */
 
-import { formatFullDateTime, to12HourTime } from '@/helpers/utils'
+import {
+  formatFullDateTime,
+  sortDaysOfTheWeek,
+  to12HourTime,
+} from '@/helpers/utils'
 import { useScheduleContext } from '@/providers/ScheduleProvider'
 import type { Schedule, ScheduleLookups } from '@/types/scheduler'
 import {
@@ -69,6 +73,21 @@ export default function ScheduleDetails({
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Group: {schedule.group ?? 'NONE'}
               </p>
+              {schedule.accounts && schedule.accounts.length > 0 ? (
+                <div>
+                  <h3 className="text-lg font-bold mt-4">Accounts</h3>
+                  <ul>
+                    {schedule.accounts.map((acc) => (
+                      <li
+                        key={acc.id}
+                        className="text-gray-900 dark:text-gray-100"
+                      >
+                        {acc.name} ({acc.platform})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
             <div className="flex flex-row gap-4">
               <div>
@@ -132,7 +151,7 @@ export default function ScheduleDetails({
                   Days of the Week
                 </span>
                 <p className="text-gray-900 dark:text-gray-100">
-                  {schedule.frequency.daysOfWeek.join(', ')}
+                  {sortDaysOfTheWeek(schedule.frequency.daysOfWeek).join(', ')}
                 </p>
               </div>
             ) : null}

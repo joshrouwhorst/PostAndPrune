@@ -1,27 +1,34 @@
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import {
-  getBackupAsPostDisplayData,
-  runBackup,
-} from '../services/BackupService'
-import { withBskyLogoutAndErrorHandling } from '../../api-helpers/apiWrapper'
+  withSocialLogoutAndErrorHandling,
+  withSocialLogoutAndErrorHandlingForRequest,
+} from '../../api-helpers/apiWrapper'
 import Logger from '../../api-helpers/logger'
+import { getBackups, runBackup } from '../services/BackupService'
 
 const logger = new Logger('BackupRoute')
 
 // GET handler - wrapped with automatic Bluesky logout
-export const GET = withBskyLogoutAndErrorHandling(async () => {
+export const GET = withSocialLogoutAndErrorHandling(async () => {
   logger.log('Starting backup fetch')
-  const backup = await getBackupAsPostDisplayData()
-  return NextResponse.json(backup)
+  const backups = await getBackups()
+  return NextResponse.json(backups)
 })
 
 // POST handler - wrapped with automatic Bluesky logout
-export const POST = withBskyLogoutAndErrorHandling(async () => {
-  logger.log('Starting backup run')
-  await runBackup()
+export const POST = withSocialLogoutAndErrorHandlingForRequest(
+  async (request: NextRequest) => {
+    logger.log('Starting backup run')
+    const url = new URL(request.url)
+    const accountIds: string[] = (
+      url.searchParams.get('accountIds') || ''
+    ).split(',')
 
-  return NextResponse.json({
-    success: true,
-    message: 'Backup completed successfully',
-  })
-})
+    await runBackup(accountIds)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Backup completed successfully',
+    })
+  },
+)

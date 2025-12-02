@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import React from "react";
-import PostList from "@/components/PostList";
-import { useDraftContext } from "@/providers/DraftsProvider";
-import { LinkButton } from "./ui/forms";
-import { Plus } from "lucide-react";
+import PostList from '@/components/PostList'
+import { useDraftContext } from '@/providers/DraftsProvider'
+import { transformDraftToDisplayData } from '@/transformers/transformDraftToDisplayData'
 
 export default function DraftPostList() {
+  const { drafts, isLoading } = useDraftContext()
+  const posts = drafts.map((d) => transformDraftToDisplayData(d))
   return (
     <div className="relative">
-      <PostList context={useDraftContext}>
+      <PostList posts={posts} isLoading={isLoading}>
         <div className="flex flex-col items-center justify-center py-16 text-center text-gray-500">
           <h2 className="text-lg font-semibold mb-2">No drafts yet</h2>
           <p className="mb-4">
@@ -18,5 +18,5 @@ export default function DraftPostList() {
         </div>
       </PostList>
     </div>
-  );
+  )
 }
