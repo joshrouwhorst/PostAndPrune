@@ -2,24 +2,21 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# Use npm install instead of npm ci for more flexibility with missing optional deps
+RUN npm install --only=production --ignore-scripts
+# Clean up any dev dependencies that might have been installed
+RUN npm prune --omit=dev
 
 FROM node:24-alpine AS builder
 WORKDIR /app
 COPY . .
-ARG TARGETARCH
-ARG TARGETOS
 ARG SKIP_LINT=false
 ENV NEXT_LINT=${SKIP_LINT}
-RUN npm install --os=${TARGETOS} --cpu=${TARGETARCH}
-RUN npm rebuild
-RUN npm install --no-save --platform=linux --arch=x64 lightningcss
-RUN npm install --no-save --platform=linux --arch=arm64 lightningcss
-RUN npm rebuild lightningcss
-RUN npm install --no-save --platform=linux --arch=x64 sharp
-RUN npm install --no-save --platform=linux --arch=arm64 sharp
-RUN npm rebuild sharp
-RUN npm run build || (npm install --os=${TARGETOS} --cpu=${TARGETARCH} lightningcss && npm run build)
+# Install all dependencies including dev dependencies for building
+RUN npm install --ignore-scripts
+# Try to rebuild platform-specific packages, but don't fail if they're not available
+RUN npm rebuild || true
+RUN npm run build
     
 
 FROM node:24-alpine AS runner
