@@ -6,8 +6,6 @@ A Next.js application for viewing and managing your [Bluesky](https://bsky.app)
 social media backup data and other open social media platforms, create draft posts,
 and schedule them to be published, all **local** and **private**.
 
-![Screenshot of Post & Prune](https://github.com/joshrouwhorst/Post-and-Prune/blob/main/public/screenshot.png?raw=true)
-
 ## Project Overview
 
 **Backup**

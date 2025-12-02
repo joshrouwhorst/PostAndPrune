@@ -5,7 +5,7 @@ import path from 'node:path'
 import {
   getAllMigrationFilenames,
   getMigrationByFilename,
-} from './migrations/index.js'
+} from './migrations/index'
 import {
   type AppInfo,
   MigrationService,
