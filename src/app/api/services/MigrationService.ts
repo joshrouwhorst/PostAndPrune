@@ -1,10 +1,12 @@
 import { APP_DATA_FILE } from '@/config/main'
+import fs from 'node:fs'
+import path from 'node:path'
 import { readEncryptedText, writeEncryptedFile } from './FileService'
 
 export interface AppInfo {
   version: string
   previousVersion: string
-  migrations: string[]
+  // migrations field is now handled by Umzug storage
 }
 
 export class MigrationService {
@@ -12,6 +14,51 @@ export class MigrationService {
 
   constructor(app: AppInfo) {
     this.app = app
+  }
+
+  // Get app version info from package.json and version tracking file
+  static async getAppInfo(): Promise<AppInfo> {
+    const packageJsonPath = path.join(process.cwd(), 'package.json')
+    const versionTrackingPath = path.join(process.cwd(), '.app-version.json')
+
+    const packageInfo = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
+    const currentVersion = packageInfo.version
+
+    let previousVersion = currentVersion
+
+    try {
+      if (fs.existsSync(versionTrackingPath)) {
+        const versionData = JSON.parse(
+          fs.readFileSync(versionTrackingPath, 'utf-8'),
+        )
+        previousVersion = versionData.version || currentVersion
+      }
+    } catch (error) {
+      console.warn('Could not read version tracking file:', error)
+    }
+
+    // Update version tracking file
+    try {
+      fs.writeFileSync(
+        versionTrackingPath,
+        JSON.stringify(
+          {
+            version: currentVersion,
+            previousVersion,
+            lastUpdated: new Date().toISOString(),
+          },
+          null,
+          2,
+        ),
+      )
+    } catch (error) {
+      console.warn('Could not write version tracking file:', error)
+    }
+
+    return {
+      version: currentVersion,
+      previousVersion,
+    }
   }
 
   needToMigrate() {

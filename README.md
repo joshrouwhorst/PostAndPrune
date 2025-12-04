@@ -3,7 +3,7 @@
 **Local backup, drafts & scheduling for open social media**
 
 A Next.js application for viewing and managing your [Bluesky](https://bsky.app)
-social media backup data and other open social media platforms, create draft posts,
+social media backup data and other open social media platforms (coming soon), create draft posts,
 and schedule them to be published, all **local** and **private**.
 
 ## Project Overview

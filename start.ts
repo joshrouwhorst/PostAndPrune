@@ -1,20 +1,9 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process'
-import fs from 'node:fs'
-import path from 'node:path'
-import {
-  getAllMigrationFilenames,
-  getMigrationByFilename,
-} from './migrations/index'
-import {
-  type AppInfo,
-  MigrationService,
-} from './src/app/api/services/MigrationService'
+import { MigrationService } from './src/app/api/services/MigrationService.js'
+import { createUmzugInstance } from './src/migrations/umzug.js'
 
 console.log('Starting BskyBackup application...')
-
-const APP_INFO_PATH = path.join(process.cwd(), '.migrations.json')
-const PACKAGE_JSON_PATH = path.join(process.cwd(), 'package.json')
 
 // Wait for server to be ready by checking port
 async function waitForServer(port = 3000, maxAttempts = 30) {
@@ -105,119 +94,49 @@ async function signalStop() {
   }
 }
 
-// Get metadata from .migrations.json
-async function openAppInfo() {
+async function runMigrations() {
   try {
-    let app = null
-    const exists = fs.existsSync(APP_INFO_PATH)
+    console.log('Getting app version info...')
+    const appInfo = await MigrationService.getAppInfo()
 
-    if (!exists) {
-      // Initial values
-      app = {
-        migrations: [],
-      }
-      fs.writeFileSync(APP_INFO_PATH, JSON.stringify(app, null, 2))
-    } else {
-      const data = fs.readFileSync(APP_INFO_PATH, 'utf-8')
-      app = JSON.parse(data)
+    console.log(`Current version: ${appInfo.version}`)
+    console.log(`Previous version: ${appInfo.previousVersion}`)
+
+    const service = new MigrationService(appInfo)
+    const umzug = createUmzugInstance(service)
+
+    console.log('Checking for pending migrations...')
+    const pending = await umzug.pending()
+
+    if (pending.length === 0) {
+      console.log('✅ No pending migrations')
+      return
     }
 
-    const packageInfo = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, 'utf-8'))
+    console.log(`Found ${pending.length} pending migration(s):`)
+    pending.forEach((migration) => {
+      console.log(`  - ${migration.name}`)
+    })
 
-    // Add version if missing, this is the project's initial setup
-    if (!app.version) {
-      app.version = packageInfo.version
-      app.previousVersion = packageInfo.version
-      fs.writeFileSync(APP_INFO_PATH, JSON.stringify(app, null, 2))
+    console.log('Running migrations...')
+    const executed = await umzug.up()
+
+    if (executed.length > 0) {
+      console.log('✅ Successfully executed migrations:')
+      executed.forEach((migration) => {
+        console.log(`  ✓ ${migration.name}`)
+      })
     }
-
-    // There has been an update, we track what the previous version was
-    if (app.version !== packageInfo.version) {
-      app.previousVersion = app.version
-      app.version = packageInfo.version
-      fs.writeFileSync(APP_INFO_PATH, JSON.stringify(app, null, 2))
-    }
-
-    return app
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('❌ Could not find .migrations.json:', error.message)
-    } else {
-      console.error('❌ Could not find .migrations.json:', error)
-    }
-    return
-  }
-}
-
-// Save metadata to .migrations.json
-async function saveAppInfo(app: AppInfo) {
-  try {
-    fs.writeFileSync(APP_INFO_PATH, JSON.stringify(app, null, 2))
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('❌ Could not save .migrations.json:', error.message)
-    } else {
-      console.error('❌ Could not save .migrations.json:', error)
-    }
-  }
-}
-
-async function runMigrations(app: AppInfo) {
-  const previousMigrations = app.migrations || []
-  const migrations = getAllMigrationFilenames()
-
-  const service = new MigrationService(app)
-
-  for (const migrationFile of migrations) {
-    if (previousMigrations.includes(migrationFile)) {
-      console.log(`➡️ Skipping already applied migration: ${migrationFile}`)
-      continue // Skip already applied migrations
-    }
-
-    console.log(`➡️ Running migration: ${migrationFile}`)
-    try {
-      const migration = await getMigrationByFilename(migrationFile)
-      // Handle both default export and named exports
-      if (!migration) {
-        console.warn(
-          `⚠️ Migration ${migrationFile} does not export a valid module`,
-        )
-        continue
-      }
-
-      if (typeof migration.up === 'function') {
-        await migration.up(service)
-        console.log(`✅ Migration ${migrationFile} applied successfully`)
-        previousMigrations.push(migrationFile)
-        app.migrations = previousMigrations
-        await saveAppInfo(app)
-      } else {
-        console.warn(
-          `⚠️ Migration ${migrationFile} does not export an 'up' function`,
-        )
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error(`❌ Migration ${migrationFile} failed:`, error.message)
-      } else {
-        console.error(`❌ Migration ${migrationFile} failed:`, error)
-      }
-      throw error // Stop further migrations on failure
-    }
+  } catch (error) {
+    console.error('❌ Migration failed:', error)
+    throw error
   }
 }
 
 // Start the application
 async function start() {
-  console.log('Opening app migration info...')
-  const app = await openAppInfo()
-
-  if (!app) {
-    throw new Error('Could not open app info')
-  }
-
   console.log('Running migrations if needed...')
-  await runMigrations(app)
+  await runMigrations()
 
   console.log('Starting Next.js server...')
   const server = spawn('npm', ['run', 'start'], {

@@ -10,12 +10,18 @@
     "lint": "biome check",
     "format": "biome format --write",
     "test": "jest",
-    "docker:build": "docker build -t post-and-prune ."
+    "docker:build": "docker build -t post-and-prune .",
+    "migration": "npx tsx migration-cli.ts",
+    "migration:status": "npx tsx migration-cli.ts status",
+    "migration:up": "npx tsx migration-cli.ts up",
+    "migration:down": "npx tsx migration-cli.ts down",
+    "migration:create": "npx tsx migration-cli.ts create"
   },
   "dependencies": {
     "@atproto/api": "^0.18.3",
     "@tailwindcss/postcss": "^4.1.13",
     "clsx": "^2.1.1",
+    "commander": "^14.0.2",
     "cookies-next": "^6.1.1",
     "dayjs": "^1.11.18",
     "exifreader": "^4.32.0",
@@ -28,7 +34,8 @@
     "react-dom": "19.1.0",
     "tailwindcss": "^4.1.13",
     "ts-node": "^10.9.2",
-    "tsconfig": "^7.0.0"
+    "tsconfig": "^7.0.0",
+    "umzug": "^3.8.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",

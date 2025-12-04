@@ -3,14 +3,14 @@ import {
   createDirectory,
   deleteFileOrDirectory,
   moveFileOrDirectory,
-} from '@/app/api/services/FileService'
-import type { MigrationService } from '@/app/api/services/MigrationService'
-import { getPaths } from '@/config/main'
-import generateId from '@/helpers/generateId'
-import type { Account } from '@/types/accounts'
-import type { Schedule } from '@/types/scheduler'
+} from '../../app/api/services/FileService.js'
+import { getPaths } from '../../config/main.js'
+import generateId from '../../helpers/generateId.js'
+import type { Account } from '../../types/accounts.js'
+import type { Schedule } from '../../types/scheduler.js'
+import type { MigrationContext } from '../umzug.js'
 
-export async function up(service: MigrationService) {
+export async function up({ service }: MigrationContext) {
   console.log('Migrating to 0.2.0: Adding multi-account support')
   const appData = await service.getAppData()
 
@@ -72,7 +72,7 @@ export async function up(service: MigrationService) {
   }
 }
 
-export async function down(service: MigrationService) {
+export async function down({ service }: MigrationContext) {
   console.log('Reverting migration to 0.2.0: Removing multi-account support')
   const appData = await service.getAppData()
 

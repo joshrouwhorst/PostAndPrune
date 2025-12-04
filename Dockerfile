@@ -33,7 +33,7 @@ COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/src ./src
-COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/migrations/ ./migrations/
 COPY --from=builder /app/start.ts ./start.ts
 EXPOSE 3000
 CMD ["ts-node", "./start.ts"]
