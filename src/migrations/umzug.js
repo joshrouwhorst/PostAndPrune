@@ -1,17 +1,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { Umzug } from 'umzug'
-import { MigrationService } from '../app/api/services/MigrationService'
 
 // Custom storage adapter for JSON file
 class JSONStorage {
-  private readonly path: string
-
-  constructor(options: { path: string }) {
+  constructor(options) {
     this.path = options.path
   }
 
-  async logMigration({ name }: { name: string }): Promise<void> {
+  async logMigration({ name }) {
     const migrations = await this.executed()
     migrations.push(name)
 
@@ -23,7 +20,7 @@ class JSONStorage {
     fs.writeFileSync(this.path, JSON.stringify(data, null, 2))
   }
 
-  async unlogMigration({ name }: { name: string }): Promise<void> {
+  async unlogMigration({ name }) {
     const migrations = await this.executed()
     const index = migrations.indexOf(name)
 
@@ -39,7 +36,7 @@ class JSONStorage {
     fs.writeFileSync(this.path, JSON.stringify(data, null, 2))
   }
 
-  async executed(): Promise<string[]> {
+  async executed() {
     if (!fs.existsSync(this.path)) {
       return []
     }
@@ -57,23 +54,21 @@ const MIGRATION_STORAGE_PATH = path.join(process.cwd(), '.migrations.json')
 const MIGRATIONS_PATH = path.join(process.cwd(), 'src/migrations/files')
 
 // Helper function to create Umzug instance
-export function createUmzugInstance(
-  service: MigrationService,
-): Umzug<MigrationContext> {
+export function createUmzugInstance() {
   return new Umzug({
     migrations: {
       glob: ['*.{js,ts}', { cwd: MIGRATIONS_PATH }],
       resolve: ({ name, path: migrationPath, context }) => ({
         name,
         up: async () => {
-          const migration = await import(migrationPath!)
+          const migration = await import(migrationPath)
           if (migration.up && typeof migration.up === 'function') {
             return migration.up(context)
           }
           throw new Error(`Migration ${name} does not export an 'up' function`)
         },
         down: async () => {
-          const migration = await import(migrationPath!)
+          const migration = await import(migrationPath)
           if (migration.down && typeof migration.down === 'function') {
             return migration.down(context)
           }
@@ -81,12 +76,8 @@ export function createUmzugInstance(
         },
       }),
     },
-    context: { service },
+    context: {},
     storage: new JSONStorage({ path: MIGRATION_STORAGE_PATH }),
     logger: console,
   })
 }
-
-export type MigrationContext = { service: MigrationService }
-
-export type Migration = Umzug<MigrationContext>['_types']['migration']

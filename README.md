@@ -80,6 +80,144 @@ I recommend setting up an app password specifically for this. On the Bluesky app
 you can go to Settings -> Privacy & Security -> App passwords to generate one.
 There is no need to enable direct messages access at this time.
 
+## Migrations
+
+This application uses [Umzug](https://github.com/sequelize/umzug) to manage database schema and application data migrations. In Docker environments, migrations are automatically run during container startup. For development, you can also manage them manually using the CLI.
+
+### Docker Container Startup (Production)
+
+When running in a Docker container, the startup process is:
+
+1. **Run Migrations**: Execute any pending migrations using `npm run migration:up`
+2. **Start Application**: Launch the Next.js application with `npm start`
+3. **Initialize Services**: Call `/api/util?action=init` to initialize background services
+4. **Health Check**: Container reports healthy status once fully operational
+
+This process is handled automatically by the Docker entrypoint script.
+
+### Development Migration Management
+
+#### Check Migration Status
+
+View which migrations have been executed and which are pending:
+
+```shell
+npm run migration:status
+```
+
+#### Run Pending Migrations
+
+Execute all pending migrations manually (development only):
+
+```shell
+npm run migration:up
+```
+
+#### Rollback Last Migration
+
+Rollback the most recently executed migration (development only):
+
+```shell
+npm run migration:down
+```
+
+⚠️ **Warning**: Only rollback migrations if you understand the consequences. Data loss may occur.
+
+#### Create New Migration
+
+Generate a new migration file:
+
+```shell
+npm run migration:create "add user preferences"
+```
+
+This creates a new migration file in `src/migrations/files/` with the timestamp and name.
+
+### Migration File Structure
+
+Each migration file exports `up` and `down` functions:
+
+```typescript
+import type { MigrationContext } from '../umzug.js'
+
+export async function up({ service }: MigrationContext) {
+  console.log('Running migration: Add user preferences')
+  
+  // Get current app data
+  const appData = await service.getAppData()
+  
+  // Modify data structure
+  if (appData?.settings) {
+    appData.settings.userPreferences = {
+      theme: 'light',
+      notifications: true
+    }
+  }
+  
+  // Save changes
+  await service.saveAppData(appData)
+  console.log('Added user preferences to app data')
+}
+
+export async function down({ service }: MigrationContext) {
+  console.log('Rolling back migration: Add user preferences')
+  
+  const appData = await service.getAppData()
+  
+  // Remove the changes
+  if (appData?.settings?.userPreferences) {
+    delete appData.settings.userPreferences
+  }
+  
+  await service.saveAppData(appData)
+  console.log('Removed user preferences from app data')
+}
+```
+
+### Migration Context
+
+The `service` object provides methods to:
+
+- `service.getAppData()` - Get current application data
+- `service.saveAppData(data)` - Save modified application data
+- `service.isPreviousVersionLessThan(version)` - Version comparison helpers
+- `service.compareVersions(v1, v2)` - Compare semantic versions
+
+### Migration Storage
+
+Migration state is tracked in:
+
+- **`.migrations.json`** - Records which migrations have been executed
+- **`.app-version.json`** - Tracks application version changes
+
+These files are automatically created and managed. Do not edit them manually.
+
+### Best Practices
+
+1. **Test Migrations**: Always test both `up` and `down` functions
+2. **Backup Data**: Consider backing up critical data before major migrations
+3. **Atomic Operations**: Keep migrations focused on single changes
+4. **Version Checks**: Use version comparison helpers for conditional logic
+5. **Error Handling**: Migrations will automatically stop on errors
+
+### Troubleshooting
+
+**Migration Failed in Development**
+```shell
+❌ Migration 20251201_example.ts failed: Error message
+```
+- Check the error message and fix the migration file
+- Migrations stop on first failure to prevent data corruption
+
+**Migration Failed in Docker**
+- Check container logs: `docker logs <container_name>`
+- Container will exit if migrations fail during startup
+- Fix the migration and rebuild the container
+
+**Module Not Found Errors**
+- Ensure all imports use relative paths with `.js` extensions
+- Check that imported files exist and are properly exported
+
 ## Unit Testing
 
 This project uses Jest for unit testing.

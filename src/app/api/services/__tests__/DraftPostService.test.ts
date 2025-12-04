@@ -85,11 +85,10 @@ describe('DraftPostService', () => {
     platform: 'bluesky',
     isActive: true,
     createdAt: new Date().toISOString(),
+    profile: null,
     credentials: {
-      bluesky: {
-        identifier: 'test-identifier',
-        password: 'test-password',
-      },
+      identifier: 'test-identifier',
+      password: 'test-password',
     },
   }
 

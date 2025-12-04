@@ -10,8 +10,16 @@ import type { Account } from '../../types/accounts.js'
 import type { Schedule } from '../../types/scheduler.js'
 import type { MigrationContext } from '../umzug.js'
 
-export async function up({ service }: MigrationContext) {
+export async function up(context: MigrationContext) {
   console.log('Migrating to 0.2.0: Adding multi-account support')
+
+  // Import MigrationService directly for this migration
+  const { MigrationService } = await import(
+    '../../app/api/services/MigrationService.js'
+  )
+  const appInfo = await MigrationService.getAppInfo()
+  const service = new MigrationService(appInfo)
+
   const appData = await service.getAppData()
 
   // If accounts field doesn't exist, create it with default account
@@ -72,8 +80,16 @@ export async function up({ service }: MigrationContext) {
   }
 }
 
-export async function down({ service }: MigrationContext) {
+export async function down(context: MigrationContext) {
   console.log('Reverting migration to 0.2.0: Removing multi-account support')
+
+  // Import MigrationService directly for this migration
+  const { MigrationService } = await import(
+    '../../app/api/services/MigrationService.js'
+  )
+  const appInfo = await MigrationService.getAppInfo()
+  const service = new MigrationService(appInfo)
+
   const appData = await service.getAppData()
 
   // Remove accounts field and restore single account fields

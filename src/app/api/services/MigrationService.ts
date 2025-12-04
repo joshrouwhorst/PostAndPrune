@@ -1,7 +1,10 @@
+import {
+  readEncryptedText,
+  writeEncryptedFile,
+} from '@/app/api/services/FileService'
 import { APP_DATA_FILE } from '@/config/main'
 import fs from 'node:fs'
 import path from 'node:path'
-import { readEncryptedText, writeEncryptedFile } from './FileService'
 
 export interface AppInfo {
   version: string

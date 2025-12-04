@@ -1,7 +1,12 @@
 #!/usr/bin/env node
+
+// Simple migration CLI for Docker environment
+// This is an ES module version that works with the package.json type: "module"
+
 import { Command } from 'commander'
-import { MigrationService } from './src/app/api/services/MigrationService.js'
 import { createUmzugInstance } from './src/migrations/umzug.js'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const program = new Command()
 
@@ -15,14 +20,10 @@ program
   .description('Show migration status')
   .action(async () => {
     try {
-      const appInfo = await MigrationService.getAppInfo()
-      const service = new MigrationService(appInfo)
-      const umzug = createUmzugInstance(service)
+      const umzug = createUmzugInstance()
 
       console.log('📋 Migration Status')
       console.log('==================')
-      console.log(`Current version: ${appInfo.version}`)
-      console.log(`Previous version: ${appInfo.previousVersion}`)
       console.log()
 
       const executed = await umzug.executed()
@@ -57,9 +58,7 @@ program
   .description('Run pending migrations')
   .action(async () => {
     try {
-      const appInfo = await MigrationService.getAppInfo()
-      const service = new MigrationService(appInfo)
-      const umzug = createUmzugInstance(service)
+      const umzug = createUmzugInstance()
 
       const pending = await umzug.pending()
       if (pending.length === 0) {
@@ -85,9 +84,7 @@ program
   .description('Rollback the last migration')
   .action(async () => {
     try {
-      const appInfo = await MigrationService.getAppInfo()
-      const service = new MigrationService(appInfo)
-      const umzug = createUmzugInstance(service)
+      const umzug = createUmzugInstance()
 
       console.log('🔄 Rolling back last migration...')
       const executed = await umzug.down()
@@ -109,30 +106,29 @@ program
 program
   .command('create <name>')
   .description('Create a new migration file')
-  .action(async (name: string) => {
+  .action(async (name) => {
     try {
-      const fs = await import('node:fs')
-      const path = await import('node:path')
-
       const timestamp = new Date()
         .toISOString()
         .replace(/[-:]/g, '')
         .split('.')[0] // YYYYMMDDTHHMMSS
-      const filename = `${timestamp}_${name.toLowerCase().replace(/\s+/g, '_')}.ts`
+      const filename = `${timestamp}_${name
+        .toLowerCase()
+        .replace(/\s+/g, '_')}.ts`
       const migrationPath = path.join(
         process.cwd(),
         'src/migrations/files',
-        filename,
+        filename
       )
 
-      const template = `import type { MigrationContext } from '../umzug'
+      const template = `import type { MigrationContext } from '../umzug.js'
 
-export async function up({ service }: MigrationContext) {
+export async function up(context: MigrationContext) {
   console.log('Running migration: ${name}')
   // TODO: Implement migration logic here
 }
 
-export async function down({ service }: MigrationContext) {
+export async function down(context: MigrationContext) {
   console.log('Rolling back migration: ${name}')
   // TODO: Implement rollback logic here
 }

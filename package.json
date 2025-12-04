@@ -11,11 +11,11 @@
     "format": "biome format --write",
     "test": "jest",
     "docker:build": "docker build -t post-and-prune .",
-    "migration": "npx tsx migration-cli.ts",
-    "migration:status": "npx tsx migration-cli.ts status",
-    "migration:up": "npx tsx migration-cli.ts up",
-    "migration:down": "npx tsx migration-cli.ts down",
-    "migration:create": "npx tsx migration-cli.ts create"
+    "migration": "node migration-cli.js",
+    "migration:status": "node migration-cli.js status",
+    "migration:up": "node migration-cli.js up",
+    "migration:down": "node migration-cli.js down",
+    "migration:create": "node migration-cli.js create"
   },
   "dependencies": {
     "@atproto/api": "^0.18.3",

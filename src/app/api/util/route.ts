@@ -28,3 +28,22 @@ export async function POST(request: Request) {
       )
   }
 }
+
+// Health check endpoint for Docker
+export async function GET(request: Request) {
+  const searchParams = new URL(request.url).searchParams
+  const action = searchParams.get('action')
+
+  if (action === 'healthcheck') {
+    return NextResponse.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    })
+  }
+
+  return NextResponse.json({
+    status: 'ready',
+    availableActions: ['init', 'shutdown', 'healthcheck'],
+  })
+}

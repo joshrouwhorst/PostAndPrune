@@ -31,8 +31,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "start.ts",
     "src/types/multiformats.d.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "migration-cli.ts"]
 }
