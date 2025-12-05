@@ -24,12 +24,6 @@ FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Install curl for health checks
-# Alternative: Use wget (already available in Alpine) for health checks instead of curl
-# This avoids the busybox trigger issue in multi-platform builds
-RUN apk add --no-cache --update ca-certificates curl && \
-    rm -rf /var/cache/apk/* /tmp/*
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
@@ -42,7 +36,9 @@ EXPOSE 3000
 
 # Health check to ensure the application is running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl --fail http://localhost:3000/api/util?action=healthcheck || exit 1
+  CMD wget -q --spider http://localhost:3000/api/util?action=healthcheck || exit 1
+
+
 
 # Start Next.js application
 CMD ["npm", "start"]
