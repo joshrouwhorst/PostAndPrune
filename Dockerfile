@@ -25,7 +25,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install curl for health checks
-RUN apk add --no-cache curl
+# Alternative: Use wget (already available in Alpine) for health checks instead of curl
+# This avoids the busybox trigger issue in multi-platform builds
+RUN apk add --no-cache --update ca-certificates wget && \
+    rm -rf /var/cache/apk/* /tmp/*
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
@@ -34,18 +37,12 @@ COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/src ./src
-COPY --from=builder /app/migration-cli.js ./
-COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
-
-# Make entrypoint executable
-RUN chmod +x ./docker-entrypoint.sh
 
 EXPOSE 3000
 
 # Health check to ensure the application is running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:3000/api/util?action=healthcheck || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/util?action=healthcheck || exit 1
 
-# Reset entrypoint and set our script as the command
-ENTRYPOINT []
-CMD ["./docker-entrypoint.sh"]
+# Start Next.js application
+CMD ["npm", "start"]
