@@ -261,10 +261,16 @@ export async function createDraftPost(
     const fname = `video${ext}`
     const outPath = path.join(mediaDir, fname)
 
-    // Convert data to Buffer if it's not already
-    const bufferData = Buffer.isBuffer(vid.data)
-      ? vid.data
-      : Buffer.from(vid.data)
+    // Convert data to Buffer with comprehensive type checking
+    let bufferData: Buffer
+
+    if (vid.base64) {
+      bufferData = Buffer.from(vid.base64, 'base64')
+    } else if (vid.buffer) {
+      bufferData = Buffer.from(vid.buffer)
+    } else {
+      throw new Error(`Unsupported data type: ${typeof vid.data}`)
+    }
 
     await writeFile(outPath, bufferData)
   }
@@ -781,12 +787,31 @@ async function addImage(
   const fname = `image_${index + 1}${ext}`
   const outPath = path.join(mediaDir, fname)
 
-  // Convert data to Buffer if it's not already
-  const bufferData = Buffer.isBuffer(img.data)
-    ? img.data
-    : Buffer.from(img.data)
+  // Convert data to Buffer with comprehensive type checking
+  let bufferData: Buffer
+  try {
+    if (img.base64) {
+      bufferData = Buffer.from(img.base64, 'base64')
+    } else if (img.intArray) {
+      bufferData = Buffer.from(img.intArray)
+    } else if (img.buffer && img.buffer.length > 0) {
+      bufferData = Buffer.from(img.buffer)
+    } else {
+      throw new Error(`Unsupported or empty data type: ${typeof img.data}`)
+    }
+  } catch (err) {
+    logger.error('Error converting image data to Buffer:', err)
+    throw err
+  }
 
-  await writeFile(outPath, bufferData)
+  try {
+    if (bufferData) {
+      await writeFile(outPath, bufferData)
+    }
+  } catch (err) {
+    logger.error('Error writing image file:', err)
+    throw err
+  }
 }
 
 async function addVideo(video: DraftMediaFileInput, mediaDir: string) {
@@ -795,12 +820,30 @@ async function addVideo(video: DraftMediaFileInput, mediaDir: string) {
   const fname = `video${ext}`
   const outPath = path.join(mediaDir, fname)
 
-  // Convert data to Buffer if it's not already
-  const bufferData = Buffer.isBuffer(vid.data)
-    ? vid.data
-    : Buffer.from(vid.data)
+  // Convert data to Buffer with comprehensive type checking
+  let bufferData: Buffer
 
-  await writeFile(outPath, bufferData)
+  try {
+    if (vid.base64) {
+      bufferData = Buffer.from(vid.base64, 'base64')
+    } else if (vid.intArray) {
+      bufferData = Buffer.from(new Uint8Array(vid.intArray))
+    } else if (vid.buffer) {
+      bufferData = Buffer.from(vid.buffer)
+    } else {
+      throw new Error(`Unsupported data type: ${typeof vid.data}`)
+    }
+  } catch (err) {
+    logger.error('Error converting video data to Buffer:', err)
+    throw err
+  }
+
+  try {
+    await writeFile(outPath, bufferData)
+  } catch (err) {
+    logger.error('Error writing video file:', err)
+    throw err
+  }
 }
 
 function extFromFilename(filename: string) {

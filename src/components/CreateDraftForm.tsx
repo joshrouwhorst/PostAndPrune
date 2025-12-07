@@ -84,16 +84,22 @@ export function CreateDraftForm({
           kind: 'image' as const,
           filename: file.name,
           mime: file.type,
-          data: new Uint8Array(data),
+          data: Buffer.from(data),
+          base64: Buffer.from(data).toString('base64'),
         })
       } else if (file.type.startsWith('video/')) {
         video = {
           kind: 'video' as const,
           filename: file.name,
           mime: file.type,
-          data: new Uint8Array(data),
+          data: Buffer.from(data),
+          base64: Buffer.from(data).toString('base64'),
         }
         break // Only one video allowed
+      } else {
+        console.error(`Unsupported file type: ${file.type}`)
+        alert(`Unsupported file type: ${file.type}`)
+        return
       }
     }
 

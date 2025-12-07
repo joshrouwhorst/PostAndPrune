@@ -14,6 +14,7 @@ export function transformDraftToDisplayData(
       handle,
     },
     indexedAt: draftPost.meta.createdAt,
+    createdAt: draftPost.meta.createdAt,
     isRepost: false,
     images: draftPost.meta.images.map((img) => ({
       url: img.url || '',

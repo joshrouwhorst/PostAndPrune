@@ -8,7 +8,6 @@ import {
   getDraftPosts,
   getDraftPostsInGroup,
   getDraftPostsInSchedule,
-  updateDraftPost,
 } from '@/app/api/services/DraftPostService'
 import { getSchedules } from '@/app/api/services/SchedulePostService'
 import type { CreateDraftInput, DraftPost } from '@/types/drafts'
@@ -67,6 +66,7 @@ export const GET = withSocialLogoutForRequest(async (request) => {
   }
 })
 
+// Create a new draft post
 export const POST = withSocialLogoutForRequest(async (request) => {
   try {
     const input = await request.json()
@@ -90,23 +90,24 @@ export const POST = withSocialLogoutForRequest(async (request) => {
   }
 })
 
+// Update an existing draft post - redirect to individual draft route
 export const PUT = withSocialLogoutWithId(async (id, request) => {
-  try {
-    const input: CreateDraftInput = await request.json()
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Post ID is required' },
-        { status: 400 },
-      )
-    }
-
-    const updatedPost = await updateDraftPost(id, input)
-    return NextResponse.json(updatedPost)
-  } catch (error) {
-    logger.error('Failed to update post', error)
-    return NextResponse.json(
-      { error: 'Failed to update post' },
-      { status: 500 },
-    )
+  if (!id) {
+    return NextResponse.json({ error: 'Post ID is required' }, { status: 400 })
   }
+
+  // Forward the request to the individual draft route
+  const url = new URL(request.url)
+  url.pathname = `/api/drafts/${id}`
+
+  const body = await request.text()
+
+  return fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...Object.fromEntries(request.headers.entries()),
+    },
+    body,
+  })
 })
