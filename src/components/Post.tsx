@@ -3,6 +3,7 @@
 
 import { useDraftContext } from '@/providers/DraftsProvider'
 import { useModal } from '@/providers/ModalProvider'
+import { useSettingsContext } from '@/providers/SettingsProvider'
 import { transformDraftToDisplayData } from '@/transformers/transformDraftToDisplayData'
 import { transformPostDataToDisplayData } from '@/transformers/transformPostDataToDisplayData'
 import type { PostData } from '@/types/bsky'
@@ -131,9 +132,17 @@ export default function Post({
     let modalId: string
 
     const PublishModal = () => {
+      const { settings } = useSettingsContext()
       const [selectedAccountIds, setSelectedAccountIds] = React.useState<
         string[]
       >([])
+      const [publishStatus, setPublishStatus] = React.useState<{
+        [accountId: string]: 'pending' | 'success' | 'error'
+      }>({})
+      const [errorMessages, setErrorMessages] = React.useState<{
+        [accountId: string]: string
+      }>({})
+      const [isPublishing, setIsPublishing] = React.useState(false)
 
       return (
         <div className="space-y-4">
@@ -153,6 +162,53 @@ export default function Post({
             }}
           />
 
+          {/* Show publish status for selected accounts */}
+          {Object.keys(publishStatus).length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Publishing Status:</h4>
+              {selectedAccountIds.map((accountId) => {
+                const account = settings?.accounts?.find(
+                  (acc) => acc.id === accountId,
+                )
+                const status = publishStatus[accountId]
+                const error = errorMessages[accountId]
+
+                if (!account) return null
+
+                return (
+                  <div
+                    key={accountId}
+                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded"
+                  >
+                    <span className="text-sm">
+                      {account.name} ({account.platform})
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {status === 'pending' && (
+                        <span className="text-blue-600 text-sm">
+                          Publishing...
+                        </span>
+                      )}
+                      {status === 'success' && (
+                        <span className="text-green-600 text-sm">
+                          ✓ Published
+                        </span>
+                      )}
+                      {status === 'error' && (
+                        <div className="text-right">
+                          <span className="text-red-600 text-sm">✗ Failed</span>
+                          {error && (
+                            <div className="text-xs text-red-500">{error}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           <div className="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
@@ -163,28 +219,81 @@ export default function Post({
             </button>
             <button
               type="button"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={async () => {
                 if (selectedAccountIds.length === 0) {
                   alert('Please select at least one account to publish to.')
                   return
                 }
 
+                setIsPublishing(true)
+                setPublishStatus({})
+                setErrorMessages({})
+
+                // Set all selected accounts to pending
+                const initialStatus = selectedAccountIds.reduce(
+                  (acc, id) => {
+                    acc[id] = 'pending'
+                    return acc
+                  },
+                  {} as { [key: string]: 'pending' | 'success' | 'error' },
+                )
+                setPublishStatus(initialStatus)
+
                 try {
                   if (post.draftId) {
-                    await publishDraft(post.draftId, selectedAccountIds)
-                    closeModal(modalId)
-                    await refresh()
+                    // Publish to accounts individually to track per-account status
+                    const results = await Promise.allSettled(
+                      selectedAccountIds.map(async (accountId) => {
+                        try {
+                          await publishDraft(post.draftId!, [accountId])
+                          setPublishStatus((prev) => ({
+                            ...prev,
+                            [accountId]: 'success',
+                          }))
+                          return { accountId, success: true }
+                        } catch (error) {
+                          const errorMsg =
+                            error instanceof Error
+                              ? error.message
+                              : 'Unknown error'
+                          setPublishStatus((prev) => ({
+                            ...prev,
+                            [accountId]: 'error',
+                          }))
+                          setErrorMessages((prev) => ({
+                            ...prev,
+                            [accountId]: errorMsg,
+                          }))
+                          return { accountId, success: false, error: errorMsg }
+                        }
+                      }),
+                    )
+
+                    const successful = results.filter(
+                      (r) => r.status === 'fulfilled' && r.value.success,
+                    ).length
+                    const failed = results.length - successful
+
+                    if (successful > 0) {
+                      await refresh()
+                    }
+
+                    if (failed === 0) {
+                      setTimeout(() => closeModal(modalId), 1500) // Close after showing success
+                    }
                   }
                 } catch (error) {
                   console.error('Failed to publish draft:', error)
-                  alert('Failed to publish draft. Please try again.')
+                } finally {
+                  setIsPublishing(false)
                 }
               }}
-              disabled={selectedAccountIds.length === 0}
+              disabled={selectedAccountIds.length === 0 || isPublishing}
             >
-              Publish to {selectedAccountIds.length} account
-              {selectedAccountIds.length !== 1 ? 's' : ''}
+              {isPublishing
+                ? 'Publishing...'
+                : `Publish to ${selectedAccountIds.length} account${selectedAccountIds.length !== 1 ? 's' : ''}`}
             </button>
           </div>
         </div>

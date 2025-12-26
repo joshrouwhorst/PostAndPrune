@@ -2,6 +2,7 @@ import {
   deletePosts as deleteBskyPosts,
   getPostsAsFeedViewPosts as getBskyPosts,
 } from '@/app/api-helpers/auth/BlueskyAuth'
+import { getPosts as getThreadsPosts } from '@/app/api-helpers/auth/ThreadsAuth'
 import {
   backupMediaFiles as backupBskyMediaFiles,
   openBackupAsFeedViewPosts as openBskyBackup,
@@ -72,16 +73,26 @@ export async function getBackup(
   logger.log('Loading backup from disk.')
   setCache(cacheId(account.id), null)
 
-  let posts = null
+  let posts: any[] = []
 
   if (account.platform === 'bluesky') {
     const backupPosts = await openBskyBackup(account.id)
     posts = backupPosts.map((p) =>
       transformFeedViewPostToDisplayData(p, account.id),
     )
+  } else if (account.platform === 'threads') {
+    // Threads posts are fetched directly from API (no local backup storage yet)
+    // TODO: Implement Threads backup file storage similar to Bluesky
+    try {
+      posts = await getThreadsPosts(account, undefined, true) // Use cache
+      logger.log(`Fetched ${posts.length} Threads posts from API`)
+    } catch (error) {
+      logger.error(`Failed to fetch Threads posts for ${account.name}:`, error)
+      posts = []
+    }
   }
 
-  if (!posts) {
+  if (!posts || posts.length === 0) {
     logger.error(`No posts found for account: ${account.name} (${account.id})`)
     return null
   }
@@ -143,8 +154,9 @@ export async function runBackup(accountIds: string[] = []): Promise<void> {
 
   for (const account of accounts) {
     logger.log(`Starting backup for account: ${account.name} (${account.id})`)
-    // Load existing backup posts
+
     if (account.platform === 'bluesky') {
+      // Load existing backup posts
       const backupPosts = await openBskyBackup(account.id)
 
       logger.log(`There are ${backupPosts.length} existing posts in backup.`)
@@ -159,7 +171,6 @@ export async function runBackup(accountIds: string[] = []): Promise<void> {
 
       if (newFVPosts.length === 0) {
         logger.log('We received no posts from Bluesky.')
-        logger.closing('Backup Process')
         continue
       }
 
@@ -203,6 +214,26 @@ export async function runBackup(accountIds: string[] = []): Promise<void> {
         logger.error('Error saving backup:', error)
         throw new Error('Failed to save backup')
       }
+    } else if (account.platform === 'threads') {
+      try {
+        // For Threads, we fetch posts directly from API
+        // TODO: Implement local backup storage for Threads similar to Bluesky
+        const threadsPosts = await getThreadsPosts(account)
+        totalPosts += threadsPosts.length
+        logger.log(
+          `Fetched ${threadsPosts.length} posts from Threads for account: ${account.name} (${account.id})`,
+        )
+      } catch (error) {
+        logger.error(
+          `Error getting posts from Threads for ${account.name}:`,
+          error,
+        )
+        logger.log('Continuing with next account...')
+      }
+    } else {
+      logger.log(
+        `Unsupported platform ${account.platform} for account ${account.name}. Skipping.`,
+      )
     }
   }
 
@@ -258,13 +289,24 @@ export async function prunePosts(): Promise<void> {
   logger.log(`Pruning posts older than ${formatDate(cutoffDate)}.`)
 
   for (const account of accounts) {
-    // Add more platforms here as needed
     if (account.platform === 'bluesky') {
       await deleteBskyPosts(account, { cutoffDate })
 
       const currentPosts = await getBskyPosts(account)
       logger.log(
-        `There are now ${currentPosts.length} total posts in on ${account.name} account.`,
+        `There are now ${currentPosts.length} total posts on ${account.name} account.`,
+      )
+    } else if (account.platform === 'threads') {
+      // TODO: Implement bulk post deletion for Threads
+      // Threads API doesn't support bulk deletion, would need to:
+      // 1. Fetch posts with cutoffDate filter
+      // 2. Delete each post individually
+      logger.log(
+        `Pruning not yet implemented for Threads account ${account.name}. Skipping.`,
+      )
+    } else {
+      logger.log(
+        `Unsupported platform ${account.platform} for account ${account.name}. Skipping.`,
       )
     }
   }

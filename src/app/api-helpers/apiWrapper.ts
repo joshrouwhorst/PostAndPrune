@@ -1,12 +1,14 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { logoutAll as bskyLogout } from './auth/BlueskyAuth'
+import { logoutAll as threadsLogout } from './auth/ThreadsAuth'
 import Logger from './logger'
 
 const logger = new Logger('ApiWrapper')
 
 const logoutFromSocials = async () => {
   await bskyLogout()
+  await threadsLogout()
   // Add logouts for other platforms as well
 }
 

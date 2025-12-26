@@ -42,7 +42,7 @@ export type DraftMeta = {
   video?: DraftMedia | null
   extra?: Record<string, any>
   priority: number // for ordering posts in a group
-  
+
   // Platform-specific settings
   platformSettings?: {
     threads?: {

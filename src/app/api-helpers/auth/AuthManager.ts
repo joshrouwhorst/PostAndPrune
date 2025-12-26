@@ -3,20 +3,32 @@ import type { FeedViewPost } from '@/types/bsky'
 import type { DraftPost } from '@/types/drafts'
 import Logger from '../logger'
 import * as BlueskyAuth from './BlueskyAuth'
+import * as ThreadsAuth from './ThreadsAuth'
 
 const logger = new Logger('AuthManager')
 
 /**
  * Get posts for an account from the appropriate platform
+ * Note: Returns FeedViewPost[] for Bluesky, PostDisplayData[] for Threads
  */
 export async function getPosts(
   account: Account,
-  config?: BlueskyAuth.PostFilters,
+  config?: BlueskyAuth.PostFilters | ThreadsAuth.PostFilters,
   useCache: boolean = false,
-): Promise<FeedViewPost[]> {
+): Promise<FeedViewPost[] | any[]> {
   switch (account.platform) {
     case 'bluesky':
-      return BlueskyAuth.getPostsAsFeedViewPosts(account, config, useCache)
+      return BlueskyAuth.getPostsAsFeedViewPosts(
+        account,
+        config as BlueskyAuth.PostFilters,
+        useCache,
+      )
+    case 'threads':
+      return ThreadsAuth.getPosts(
+        account,
+        config as ThreadsAuth.PostFilters,
+        useCache,
+      )
     default:
       throw new Error(`Unsupported platform: ${account.platform}`)
   }
@@ -32,6 +44,12 @@ export async function deletePostsWithUris(
   switch (account.platform) {
     case 'bluesky':
       return BlueskyAuth.deletePostsWithUris(account, postUris)
+    case 'threads':
+      // Threads uses post IDs instead of URIs
+      for (const postId of postUris) {
+        await ThreadsAuth.deletePost(account, postId)
+      }
+      return
     default:
       throw new Error(`Unsupported platform: ${account.platform}`)
   }
@@ -42,11 +60,15 @@ export async function deletePostsWithUris(
  */
 export async function deletePosts(
   account: Account,
-  config: BlueskyAuth.PostFilters,
+  config: BlueskyAuth.PostFilters | ThreadsAuth.PostFilters,
 ): Promise<void> {
   switch (account.platform) {
     case 'bluesky':
-      return BlueskyAuth.deletePosts(account, config)
+      return BlueskyAuth.deletePosts(account, config as BlueskyAuth.PostFilters)
+    case 'threads':
+      // Threads doesn't have bulk delete by filters, would need to implement
+      // by fetching posts with filters then deleting individually
+      throw new Error('Bulk delete by filters not yet supported for Threads')
     default:
       throw new Error(`Unsupported platform: ${account.platform}`)
   }
@@ -66,6 +88,8 @@ export async function addPost(
   switch (account.platform) {
     case 'bluesky':
       return BlueskyAuth.addPost(post, account)
+    case 'threads':
+      return ThreadsAuth.addPost(post, account)
     default:
       throw new Error(`Unsupported platform: ${account.platform}`)
   }
@@ -73,6 +97,7 @@ export async function addPost(
 
 /**
  * Save a blob to file for an account (for backups)
+ * Note: Only applicable to Bluesky
  */
 export async function saveBlobToFile(
   account: Account,
@@ -83,6 +108,8 @@ export async function saveBlobToFile(
   switch (account.platform) {
     case 'bluesky':
       return BlueskyAuth.saveBlobToFile(account, cid, filePath, did)
+    case 'threads':
+      throw new Error('Blob saving not applicable to Threads platform')
     default:
       throw new Error(`Unsupported platform: ${account.platform}`)
   }
@@ -99,6 +126,8 @@ export async function logout(account: Account): Promise<void> {
   switch (account.platform) {
     case 'bluesky':
       return BlueskyAuth.logout(account)
+    case 'threads':
+      return ThreadsAuth.logout(account)
     default:
       throw new Error(`Unsupported platform: ${account.platform}`)
   }
@@ -107,6 +136,7 @@ export async function logout(account: Account): Promise<void> {
 export async function logoutAllAccounts(): Promise<void> {
   // Be sure to add logoutAll functions for other platforms here as needed
   await BlueskyAuth.logoutAll()
+  await ThreadsAuth.logoutAll()
 }
 
 /**
@@ -123,6 +153,8 @@ export async function testConnection(account: Account): Promise<boolean> {
         // Test by trying to fetch a small number of posts
         await BlueskyAuth.getPostsAsFeedViewPosts(account, undefined, false)
         return true
+      case 'threads':
+        return ThreadsAuth.testConnection(account)
       default:
         throw new Error(`Unsupported platform: ${account.platform}`)
     }

@@ -229,6 +229,19 @@ export function CreateDraftForm({
         </div>
       )}
 
+      {/* Platform Compatibility Section */}
+      <PlatformCompatibilityIndicator
+        textLength={text.length}
+        imageCount={
+          filesToUpload.filter((f) => f.type.startsWith('image/')).length +
+          uploadedFiles.filter((f) => f.kind === 'image').length
+        }
+        hasVideo={
+          filesToUpload.some((f) => f.type.startsWith('video/')) ||
+          uploadedFiles.some((f) => f.kind === 'video')
+        }
+      />
+
       <div className="flex gap-2">
         <Button type="submit">
           {directoryName ? 'Update Draft' : 'Create Draft'}
@@ -288,6 +301,145 @@ function UploadedFilesOutput({ files }: { files: DraftMedia[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+// Platform Compatibility Indicator Component
+interface PlatformCompatibilityIndicatorProps {
+  textLength: number
+  imageCount: number
+  hasVideo: boolean
+}
+
+function PlatformCompatibilityIndicator({
+  textLength,
+  imageCount,
+  hasVideo,
+}: PlatformCompatibilityIndicatorProps) {
+  const checkBlueskyCompatibility = () => {
+    const issues: string[] = []
+
+    if (textLength > 300) {
+      issues.push('Text exceeds 300 character limit')
+    }
+    if (imageCount > 4) {
+      issues.push('More than 4 images not supported')
+    }
+    if (hasVideo && imageCount > 0) {
+      issues.push('Cannot mix video and images')
+    }
+
+    return {
+      compatible: issues.length === 0,
+      issues,
+    }
+  }
+
+  const checkThreadsCompatibility = () => {
+    const issues: string[] = []
+
+    if (textLength > 500) {
+      issues.push('Text exceeds 500 character limit')
+    }
+    if (imageCount > 10) {
+      issues.push('More than 10 images not supported')
+    }
+    if (hasVideo && imageCount > 0) {
+      issues.push('Cannot mix video and images')
+    }
+
+    return {
+      compatible: issues.length === 0,
+      issues,
+    }
+  }
+
+  const bluesky = checkBlueskyCompatibility()
+  const threads = checkThreadsCompatibility()
+
+  return (
+    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+      <h3 className="text-sm font-semibold mb-2">Platform Compatibility</h3>
+
+      <div className="grid grid-cols-2 gap-3">
+        {/* Bluesky Compatibility */}
+        <div
+          className={`p-3 rounded border-2 ${
+            bluesky.compatible
+              ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+              : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className={`text-sm font-medium ${bluesky.compatible ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}
+            >
+              Bluesky
+            </span>
+            <span
+              className={`text-xs ${bluesky.compatible ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}
+            >
+              {bluesky.compatible ? '✓ Compatible' : '⚠ Issues'}
+            </span>
+          </div>
+          {!bluesky.compatible && (
+            <ul className="text-xs text-red-600 dark:text-red-300 ml-2">
+              {bluesky.issues.map((issue, index) => (
+                <li key={index}>• {issue}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Threads Compatibility */}
+        <div
+          className={`p-3 rounded border-2 ${
+            threads.compatible
+              ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+              : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className={`text-sm font-medium ${threads.compatible ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}
+            >
+              Threads
+            </span>
+            <span
+              className={`text-xs ${threads.compatible ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}
+            >
+              {threads.compatible ? '✓ Compatible' : '⚠ Issues'}
+            </span>
+          </div>
+          {!threads.compatible && (
+            <ul className="text-xs text-red-600 dark:text-red-300 ml-2">
+              {threads.issues.map((issue, index) => (
+                <li key={index}>• {issue}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Character count */}
+      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+          <span>Character count: {textLength}</span>
+          <div className="flex gap-4">
+            <span
+              className={textLength <= 300 ? 'text-green-600' : 'text-red-600'}
+            >
+              Bluesky: {textLength}/300
+            </span>
+            <span
+              className={textLength <= 500 ? 'text-green-600' : 'text-red-600'}
+            >
+              Threads: {textLength}/500
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

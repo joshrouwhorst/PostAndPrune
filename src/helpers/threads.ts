@@ -62,7 +62,7 @@ export function formatThreadsError(
   if (!error) {
     return 'An unknown error occurred'
   }
-  
+
   if ('error_description' in error) {
     // OAuth error
     return error.error_user_msg || error.error_description || error.error
@@ -112,7 +112,9 @@ export function validateMediaForThreads(file: {
     }
     if (
       extension &&
-      !(THREADS_CONFIG.SUPPORTED_IMAGE_FORMATS as readonly string[]).includes(extension)
+      !(THREADS_CONFIG.SUPPORTED_IMAGE_FORMATS as readonly string[]).includes(
+        extension,
+      )
     ) {
       return { isValid: false, error: `Unsupported image format: ${extension}` }
     }
@@ -125,7 +127,9 @@ export function validateMediaForThreads(file: {
     }
     if (
       extension &&
-      !(THREADS_CONFIG.SUPPORTED_VIDEO_FORMATS as readonly string[]).includes(extension)
+      !(THREADS_CONFIG.SUPPORTED_VIDEO_FORMATS as readonly string[]).includes(
+        extension,
+      )
     ) {
       return { isValid: false, error: `Unsupported video format: ${extension}` }
     }

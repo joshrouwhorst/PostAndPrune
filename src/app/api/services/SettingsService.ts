@@ -1,4 +1,5 @@
 import { getAccountInfo as getBskyAccountInfo } from '@/app/api-helpers/auth/BlueskyAuth'
+import { getAccountInfo as getThreadsAccountInfo } from '@/app/api-helpers/auth/ThreadsAuth'
 import { DATA_LOCATION, DEFAULT_PRUNE_MONTHS } from '@/config/main'
 import generateId from '@/helpers/generateId'
 import type { Account } from '@/types/accounts'
@@ -83,6 +84,9 @@ export async function addAccount(account: Account) {
   if (account.platform === 'bluesky') {
     const profile = await getBskyAccountInfo(account)
     account.profile = profile
+  } else if (account.platform === 'threads') {
+    const profile = await getThreadsAccountInfo(account)
+    account.profile = profile
   }
 }
 
@@ -93,6 +97,9 @@ export async function updateAccount(account: Account) {
 
   if (account.platform === 'bluesky') {
     const profile = await getBskyAccountInfo(account)
+    account.profile = profile
+  } else if (account.platform === 'threads') {
+    const profile = await getThreadsAccountInfo(account)
     account.profile = profile
   }
 }
@@ -120,6 +127,17 @@ export async function updateAccountProfiles(): Promise<void> {
       } catch (error) {
         logger.error(
           `Failed to update profile for account ${account.id}:`,
+          error,
+        )
+      }
+    } else if (account.platform === 'threads') {
+      try {
+        const profile = await getThreadsAccountInfo(account)
+        account.profile = profile
+        logger.log(`Updated profile for Threads account ${account.id}`)
+      } catch (error) {
+        logger.error(
+          `Failed to update profile for Threads account ${account.id}:`,
           error,
         )
       }

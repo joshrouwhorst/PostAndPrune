@@ -1,4 +1,5 @@
 import { addPost as addPostToBsky } from '@/app/api-helpers/auth/BlueskyAuth'
+import { addPost as addPostToThreads } from '@/app/api-helpers/auth/ThreadsAuth'
 import {
   DEFAULT_GROUP,
   DEFAULT_POST_SLUG,
@@ -528,6 +529,11 @@ async function sendToAccount(post: DraftPost, account: Account): Promise<void> {
     case 'bluesky':
       // Integrate with Bluesky API
       await addPostToBsky(post, account)
+      await movePostToPublished(post)
+      break
+    case 'threads':
+      // Integrate with Threads API
+      await addPostToThreads(post, account)
       await movePostToPublished(post)
       break
     default:

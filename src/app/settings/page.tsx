@@ -6,9 +6,10 @@ export default function SettingsPage() {
     <div>
       <h1 className="text-2xl font-bold mb-4">Settings</h1>
       <p className="mb-4">
-        In order to be able to use the app, you need to set your Bluesky
-        credentials here. These are stored encrypted locally in the app-data
-        folder.
+        In order to be able to use the app, you need to set your social media
+        credentials here. Bluesky accounts use username/password, while Threads
+        accounts use OAuth authentication. All credentials are stored encrypted
+        locally in the app-data folder.
       </p>
       <p className="mb-4">
         Also, you need to set the path to your backup folder. This is the folder
