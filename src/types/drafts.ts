@@ -42,6 +42,19 @@ export type DraftMeta = {
   video?: DraftMedia | null
   extra?: Record<string, any>
   priority: number // for ordering posts in a group
+  
+  // Platform-specific settings
+  platformSettings?: {
+    threads?: {
+      replyControl?: 'EVERYONE' | 'ACCOUNTS_YOU_FOLLOW' | 'MENTIONED_ONLY'
+      allowlistedCountries?: string[]
+      locationId?: string
+    }
+    bluesky?: {
+      // Existing Bluesky-specific settings can be added here in the future
+      langs?: string[]
+    }
+  }
 }
 
 export type DraftPost = {
