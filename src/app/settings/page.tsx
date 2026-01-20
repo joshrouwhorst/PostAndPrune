@@ -15,6 +15,14 @@ export default function SettingsPage() {
         where your backups and drafts will be stored. Example:
         /Users/username/Documents/BskyBackup
       </p>
+      <h2 className="text-xl font-semibold mb-2">Logs</h2>
+      <p className="mb-4">
+        You can view the application logs in the Logs section. This can help you
+        diagnose any issues you may encounter.{' '}
+        <a href="/settings/logs" className="text-blue-600 dark:text-blue-400">
+          View Logs
+        </a>
+      </p>
       <Callout variant="danger" className="mb-4">
         <p>
           Be careful! This app is still a work in progress. Only use an account
