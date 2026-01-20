@@ -61,7 +61,9 @@ export function generateAuthURL(state?: string): string {
 
   const oauthState = state || generateOAuthState()
 
+  // Threads OAuth: include both app_id (preferred) and client_id for compatibility
   const params = new URLSearchParams({
+    app_id: THREADS_CONFIG.APP_ID!,
     client_id: THREADS_CONFIG.APP_ID!,
     redirect_uri: THREADS_CONFIG.REDIRECT_URI!,
     scope: THREADS_CONFIG.SCOPES.join(','),

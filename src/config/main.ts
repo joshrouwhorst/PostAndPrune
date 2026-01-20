@@ -77,7 +77,7 @@ export const THREADS_CONFIG = {
   ],
 
   // OAuth Configuration
-  AUTHORIZATION_URL: 'https://threads.net/oauth/authorize',
+  AUTHORIZATION_URL: 'https://www.threads.net/oauth/authorize',
   TOKEN_URL: 'https://graph.threads.net/oauth/access_token',
 
   // Token Management
